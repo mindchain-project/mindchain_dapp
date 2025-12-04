@@ -20,7 +20,7 @@ export default function Home() {
         <section className="mt-10 section-home">
           <h2 className="text-2xl font-semibold mb-4">Découvrir Mindchain</h2>
           <p>Gratuitement</p>
-          <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+          <button className="btn-action mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
             <Link href="/studio">Essayer la version test</Link>
           </button>
         </section>
@@ -102,7 +102,7 @@ export default function Home() {
             Mindchain ne construit pas seulement une technologie.
             <br />Nous construisons la confiance.
           </p>
-          <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Devenez partenaire</button>
+          <button className="btn-action mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Devenez partenaire</button>
         </section>
       </main>
   );

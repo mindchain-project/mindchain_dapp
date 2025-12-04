@@ -33,7 +33,7 @@ export default function NavigationStudioTabs({
             key={t.key}
             type="button"
             onClick={() => handleClick(t.key)}
-            className={`navigation-studio-item px-3 py-2 rounded-md relative
+            className={`navigation-studio-item btn-tab px-3 py-2 rounded-md relative
             ${
                 active === t.key
                 ? "text-sm text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#7e2cff] after:absolute after:left-0 after:right-0 after:-bottom-1 after:h-[3px] after:bg-gradient-to-r after:from-[#00d4ff] after:to-[#7e2cff] after:rounded-full"

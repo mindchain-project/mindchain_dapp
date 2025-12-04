@@ -1,4 +1,4 @@
-import React from 'react'
+import CertificateForm from '@/components/shared/forms/CertificateForm'
 
 interface CertificationProps {
   address: string;
@@ -12,7 +12,7 @@ const Certification = (props: CertificationProps) => {
         <h3 className="text-xl font-semibold gradient-text">Certification d&apos;oeuvre</h3>
         <p className="text-muted-foreground w-full">Pour faire certifier votre création IA en toute simplicité, remplissez le formulaire ci-dessous.<br/>
         Tous les champs marqués d&apos;un astérisque (*) sont obligatoires.</p>
-
+        <CertificateForm />
     </section>
   )
 }

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import "@/styles/components.css";
-import { NavigationMenuHeader } from "@/components/shared/NavigationMenuHeader";
+import { NavigationMenuHeader } from "@/components/shared/navigation/NavigationMenuHeader";
 import ConnectButton from "./ConnectButton";
 
 const Header = () => {

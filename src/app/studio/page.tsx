@@ -1,6 +1,6 @@
 'use client';
 import { useAppKitAccount } from "@reown/appkit/react";
-import NavigationStudioTabs, { type StudioTabKey } from "@/components/shared/NavigationStudioTabs";
+import NavigationStudioTabs, { type StudioTabKey } from "@/components/shared/navigation/NavigationStudioTabs";
 import { useState } from "react";
 import History from './history';
 import Certification from './certification';
