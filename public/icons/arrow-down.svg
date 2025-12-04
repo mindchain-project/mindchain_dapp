@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   width="800px"
+   height="800px"
+   viewBox="0 -4.5 20 20"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="arrow-down.svg"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.96625"
+     inkscape:cx="400"
+     inkscape:cy="400"
+     inkscape:window-width="1920"
+     inkscape:window-height="991"
+     inkscape:window-x="2391"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg4" />
+  <title
+     id="title1">arrow_down [#338]</title>
+  <desc
+     id="desc1">Created with Sketch.</desc>
+  <defs
+     id="defs4">
+    <linearGradient
+       id="arrowGradient"
+       x1="0%"
+       y1="0%"
+       x2="0%"
+       y2="100%">
+      <stop
+         offset="0%"
+         stop-color="#7C3AED"
+         id="stop1" />
+      <stop
+         offset="100%"
+         stop-color="#06B6D4"
+         id="stop2" />
+    </linearGradient>
+    <linearGradient
+       id="arrowFillGradient"
+       x1="0%"
+       y1="0%"
+       x2="100%"
+       y2="100%">
+      <stop
+         offset="0.50739175"
+         stop-color="#06B6D4"
+         id="stop3" />
+      <stop
+         offset="0.8078559"
+         stop-color="#7C3AED"
+         id="stop4" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#arrowFillGradient"
+       id="linearGradient7"
+       x1="9.7542048"
+       y1="-0.29560155"
+       x2="10.012938"
+       y2="14.633247"
+       gradientUnits="userSpaceOnUse"
+       spreadMethod="reflect" />
+  </defs>
+  <g
+     id="Page-1"
+     stroke="none"
+     stroke-width="1"
+     fill="none"
+     fill-rule="evenodd"
+     style="fill:url(#linearGradient7);stroke:none;stroke-opacity:1;fill-opacity:1">
+    <g
+       id="Dribbble-Light-Preview"
+       transform="translate(-220.000000, -6684.000000)"
+       style="fill:url(#linearGradient7);stroke:none;stroke-opacity:1;fill-opacity:1">
+      <g
+         id="icons"
+         transform="translate(56.000000, 160.000000)"
+         style="fill:url(#linearGradient7);stroke:none;stroke-opacity:1;fill-opacity:1">
+        <path
+           d="M164.292308,6524.36583 L164.292308,6524.36583 C163.902564,6524.77071 163.902564,6525.42619 164.292308,6525.83004 L172.555873,6534.39267 C173.33636,6535.20244 174.602528,6535.20244 175.383014,6534.39267 L183.70754,6525.76791 C184.093286,6525.36716 184.098283,6524.71997 183.717533,6524.31405 C183.328789,6523.89985 182.68821,6523.89467 182.29347,6524.30266 L174.676479,6532.19636 C174.285736,6532.60124 173.653152,6532.60124 173.262409,6532.19636 L165.705379,6524.36583 C165.315635,6523.96094 164.683051,6523.96094 164.292308,6524.36583"
+           id="arrow_down-[#338]"
+           fill="url(#arrowFillGradient)"
+           stroke="url(#arrowGradient)"
+           stroke-width="1.8"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           vector-effect="non-scaling-stroke"
+           style="fill:url(#linearGradient7);stroke:none;stroke-opacity:1;fill-opacity:1" />
+      </g>
+    </g>
+  </g>
+</svg>
