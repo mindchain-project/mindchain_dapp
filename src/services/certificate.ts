@@ -1,9 +1,49 @@
 import { v4 as uuidv4 } from "uuid";
 
-export async function generateCertificate(form) {
+
+export interface CertificateFormData {
+  title: string;
+  description: string;
+  uploadedFile: File | null;
+  prompt: string;
+  model: string;
+  provider: string;
+  mode: string;
+  sourceFile: File | null;
+  sourceFileDesc: string;
+  personalData: boolean;
+  ipfsPublish: boolean;
+  iterationImage: File | null;
+  legal: {
+    authorshipConfirmation: boolean;
+    thirdPartyRights: boolean;
+    exploitationRights: boolean;
+    license: boolean;
+  };
+  iterations: Array<{
+    image: File | null;
+    description: string;
+  }>;
+  parameters: {
+    'main-provider': string;
+    modelData: string;
+    logsFile: File | null;
+  };
+  validation: {
+    processConfirmation: boolean;
+    certification: boolean;
+    privacy: boolean;
+    terms: boolean;
+    ownership: boolean;
+  };
+}
+
+
+export async function generateCertificate(form: CertificateFormData, address?: string) {
+
 
   // Utilitaires pour obtenir des métadonnées fichiers
-  const getFileMetadata = (file, role) => {
+  const getFileMetadata = (file: File | null, role: string) => {
     if (!file) return null;
     return {
       uri: `ipfs://TO_BE_REPLACED_AFTER_UPLOAD`, // tu pourras injecter le CID
@@ -46,17 +86,16 @@ export async function generateCertificate(form) {
       },
 
       legal: {
-        process_confirmation: form.legal?.processConfirmation ?? true,
-        certification_validation: form.legal?.certification ?? true,
-        privacy_acceptance: form.legal?.privacy ?? true,
-        terms_acceptance: form.legal?.terms ?? true,
-        ownership_confirmation: form.legal?.ownership ?? true,
+        process_confirmation: form.legal?.authorshipConfirmation ?? true,
+        certification_validation: form.legal?.thirdPartyRights ?? true,
+        privacy_acceptance: form.legal?.exploitationRights ?? true,
+        terms_acceptance: form.legal?.license ?? true,
       },
 
       creation: {
         timestamp: Date.now(),
         certificate_id: uuidv4(),
-        creator_wallet: form.address || "unknown"
+        creator_wallet: address || "unknown"
       }
     }
   };

@@ -6,11 +6,13 @@ import ParametersFormController from '@/components/shared/forms/ParametersFormCo
 import LegalFormController from '@/components/shared/forms/LegalFormController';
 import ValidationFormController from '@/components/shared/forms/ValidationFormController';
 import { generateCertificate } from '@/services/certificate';
-import { it } from 'node:test';
+import { CertificateFormData } from '@/services/certificate';
+import { useAppKitAccount } from "@reown/appkit/react";
 
 const CertificateForm = () => {
+  const { address } = useAppKitAccount();
 
-  const methods = useForm({
+  const methods = useForm<CertificateFormData>({
     defaultValues: {
       title: '',
       description: '',
@@ -46,9 +48,9 @@ const CertificateForm = () => {
     },
   });
 
-  const onSubmit = (data) => {
+  const onSubmit = (data: CertificateFormData) => {
     console.log("FORM FINAL SUBMIT:", data);
-    generateCertificate(data);
+    generateCertificate(data, address);
   };
 
   return (

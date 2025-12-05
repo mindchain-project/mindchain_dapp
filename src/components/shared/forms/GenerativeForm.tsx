@@ -2,11 +2,10 @@
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { FormItem, FormLabel, FormControl } from '@/components/ui/form';
-import { useGenerativeContext } from './GenerativeContext';
+import { useGenerativeContext } from '@/components/shared/GenerativeContext';
 import Image from 'next/image';
 import { X } from "lucide-react";
 import { generateImage, generateImageDemo } from '@/services/generate';
-import { title } from 'process';
 
 
 
