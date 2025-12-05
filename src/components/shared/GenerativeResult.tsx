@@ -1,7 +1,6 @@
 'use client';
 import Image from 'next/image';
 import { useGenerativeContext } from './GenerativeContext';
-import { certificateImage } from '@/services/certificate';
 import { useEffect, useState } from 'react';
 import { retrieveFile } from '@/services/storage';
 
@@ -58,21 +57,21 @@ const GenerativeResult = (props : { address: string }) => {
           }
       }
     };
-    // Appel de la fonction server-side pour générer et télécharger le certificat
-    const certifiedImage = await certificateImage(certificateData);
-    const blob = new Blob(
-      [Uint8Array.from(atob(certifiedImage.content), c => c.charCodeAt(0))],
-      { type: "application/json" }
-    );
+    // // Appel de la fonction server-side pour générer et télécharger le certificat
+    // const certifiedImage = await certificateImage(certificateData);
+    // const blob = new Blob(
+    //   [Uint8Array.from(atob(certifiedImage.content), c => c.charCodeAt(0))],
+    //   { type: "application/json" }
+    // // );
 
-    const url = URL.createObjectURL(blob);
+    // const url = URL.createObjectURL(blob);
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = certifiedImage.fileName;
-    link.click();
+    // const link = document.createElement("a");
+    // link.href = url;
+    // link.download = certifiedImage.fileName;
+    // link.click();
 
-    URL.revokeObjectURL(url);
+    // URL.revokeObjectURL(url);
   };
 
 
