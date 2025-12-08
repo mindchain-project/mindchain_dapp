@@ -8,6 +8,7 @@ import ValidationFormController from '@/components/shared/forms/ValidationFormCo
 import { generateCertificate } from '@/services/certificate';
 import { CertificateFormData } from '@/utils/interfaces';
 import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
+import { uploadJsonFile, uploadImageFile } from '@/services/storage';
 
 const CertificateForm = () => {
   const { address } = useAppKitAccount();
@@ -18,6 +19,7 @@ const CertificateForm = () => {
       title: '',
       description: '',
       uploadedFile: null,
+      uploadedFileUrl: null,
       iterations: [],
       legal: {
         authorshipConfirmation: false,
@@ -51,7 +53,32 @@ const CertificateForm = () => {
     name: "iterations",
   });
 
+  // Utilitaires pour obtenir des métadonnées fichiers
+  const getFileMetadata = (file: File | null, role: string, url: string) => {
+    if (!file) return null;
+    return {
+      url: url,
+      type: file.type,
+      original_filename: file.name,
+      size: file.size,
+      role,
+    };
+  };
+
+
 const onSubmit = async (data: CertificateFormData) => {
+
+  let fileUrl: string | null = null;
+  // let uploadedFileMetadata = null;
+  if (data.uploadedFile) {
+    // Upload final artwork image to IPFS
+    fileUrl = await uploadImageFile(data.uploadedFile);
+    // uploadedFileMetadata = getFileMetadata(data.uploadedFile, "final_artwork", fileUrl);
+    // console.log("Final Artwork metadata:", uploadedFileMetadata);
+  }
+  data.uploadedFile = null;
+  data.uploadedFileUrl = fileUrl;
+
   console.log("FORM FINAL SUBMIT:", data);
   try {
     await generateCertificate(data, address, walletProvider);

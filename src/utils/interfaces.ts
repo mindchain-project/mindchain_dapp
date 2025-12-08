@@ -45,6 +45,7 @@ export interface CertificateFormData {
   title: string;
   description: string;
   uploadedFile: File | null;
+  uploadedFileUrl: string | null;
 
   iterations: CertificateIteration[];
   

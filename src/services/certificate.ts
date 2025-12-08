@@ -7,17 +7,17 @@ import { useReadContract } from "wagmi";
 
 
 export async function getMindchainContract(walletProvider: any, userAddress: string) {
-  console.log("🚀 [Contract] Initialisation du provider…");
+  console.log("[Contract] Initialisation du provider…");
 
   if (!walletProvider) throw new Error("❌ Provider Reown manquant !");
   if (!userAddress) throw new Error("❌ Adresse user manquante !");
 
   const provider = new ethers.BrowserProvider(walletProvider);
 
-  console.log("🔑 [Contract] Récupération du signer…");
+  console.log("[Contract] Récupération du signer…");
   const signer = await provider.getSigner();
 
-  console.log("🏷 [Contract] Signer address :", await signer.getAddress());
+  console.log("[Contract] Signer address :", await signer.getAddress());
 
   const contract = new ethers.Contract(
     MINDCHAIN_NFT_ADDRESS,
@@ -25,7 +25,7 @@ export async function getMindchainContract(walletProvider: any, userAddress: str
     signer
   );
 
-  console.log("📜 [Contract] Instance du contrat Mindchain NFT créée !");
+  console.log("[Contract] Instance du contrat Mindchain NFT créée !");
   return { contract, signer };
 }
 
@@ -41,7 +41,7 @@ export async function getMindchainContract(walletProvider: any, userAddress: str
 // }
 
 export async function mintCertificate(metadataCid: string, walletProvider: any, address: string) {
-  console.log("🚀 [Mint] Démarrage du mint…");
+  console.log("[Mint] Démarrage du mint…");
   console.log("CID =", metadataCid);
 
   const { contract, signer } = await getMindchainContract(walletProvider, address);
@@ -49,11 +49,11 @@ export async function mintCertificate(metadataCid: string, walletProvider: any, 
   // 2. Transaction de mint
   let tx;
   try {
-    console.log("📤 [Mint] Envoi de la transaction mintMindchain() …");
+    console.log("[Mint] Envoi de la transaction mintMindchain() …");
     tx = await contract.mintMindchain(address, metadataCid);
-    console.log("⏳ [Mint] Transaction envoyée, en attente…", tx.hash);
+    console.log("[Mint] Transaction envoyée, en attente…", tx.hash);
   } catch (err) {
-    console.error("❌ [Mint] Échec lors de l’envoi de la transaction :", err);
+    console.error("[Mint] Échec lors de l’envoi de la transaction :", err);
     throw err;
   }
 
@@ -61,14 +61,14 @@ export async function mintCertificate(metadataCid: string, walletProvider: any, 
   let receipt;
   try {
     receipt = await tx.wait();
-    console.log("📬 [Mint] Transaction minée !", receipt.hash);
+    console.log("[Mint] Transaction minée !", receipt.hash);
   } catch (err) {
-    console.error("❌ [Mint] Échec lors de la confirmation :", err);
+    console.error("[Mint] Échec lors de la confirmation :", err);
     throw err;
   }
 
   // 4. Extraction de l’event
-  console.log("🔎 [Mint] Analyse des logs…");
+  console.log("[Mint] Analyse des logs…");
 
   const parsedEvent = receipt.logs
     .map((log: any) => {
@@ -81,9 +81,9 @@ export async function mintCertificate(metadataCid: string, walletProvider: any, 
     .find((evt: any) => evt && evt.name === "MindchainMinted");
 
   if (!parsedEvent) {
-    console.warn("⚠️ [Mint] Impossible de trouver l’event MindchainMinted !");
+    console.warn("[Mint] Impossible de trouver l’event MindchainMinted !");
   } else {
-    console.log("🎉 [Mint] Event détecté :", parsedEvent);
+    console.log("[Mint] Event détecté :", parsedEvent);
   }
 
   return {
@@ -97,28 +97,28 @@ export async function mintCertificate(metadataCid: string, walletProvider: any, 
 
 export async function generateCertificate(form: CertificateFormData, address?: string, walletProvider?: any) {
 
-  if (!walletProvider) throw new Error("❌ Provider wallet manquant !");
-  if (!address) throw new Error("❌ Adresse wallet manquante !");
-  
-  // Utilitaires pour obtenir des métadonnées fichiers
-  const getFileMetadata = (file: File | null, role: string, url: string) => {
-    if (!file) return null;
-    return {
-      url: url,
-      type: file.type,
-      original_filename: file.name,
-      size: file.size,
-      role,
-    };
-  };
-  let fileUrl: string | null = null;
-  let uploadedFileMetadata = null;
-  if (form.uploadedFile) {
-    // Upload final artwork image to IPFS
-    fileUrl = await uploadImageFile(form.uploadedFile);
-    uploadedFileMetadata = getFileMetadata(form.uploadedFile, "final_artwork", fileUrl);
-    console.log("Final Artwork metadata:", uploadedFileMetadata);
-  }
+  if (!walletProvider) throw new Error("Provider wallet manquant !");
+  if (!address) throw new Error("Adresse wallet manquante !");
+
+  // // Utilitaires pour obtenir des métadonnées fichiers
+  // const getFileMetadata = (file: File | null, role: string, url: string) => {
+  //   if (!file) return null;
+  //   return {
+  //     url: url,
+  //     type: file.type,
+  //     original_filename: file.name,
+  //     size: file.size,
+  //     role,
+  //   };
+  // };
+  // let fileUrl: string | null = null;
+  // let uploadedFileMetadata = null;
+  // if (form.uploadedFile) {
+  //   // Upload final artwork image to IPFS
+  //   fileUrl = await uploadImageFile(form.uploadedFile);
+  //   uploadedFileMetadata = getFileMetadata(form.uploadedFile, "final_artwork", fileUrl);
+  //   console.log("Final Artwork metadata:", uploadedFileMetadata);
+  // }
 
   const attributes = [];
   for (const iteration of form.iterations) {
@@ -139,7 +139,7 @@ export async function generateCertificate(form: CertificateFormData, address?: s
   const certificate = {
     name: form.title,
     description: form.description,
-    image: fileUrl,
+    image: form.uploadedFileUrl,
     external_url:'',
     attributes: attributes,
     creation: {
@@ -149,12 +149,7 @@ export async function generateCertificate(form: CertificateFormData, address?: s
       }
     };
 
-  // const certificate = {
-  //   name: "Mindchain NFT Certificate",
-  //   description: "Mindchain AI-generated NFT Certificate",
-  //   image: "ipfs://bafybeif3vzfmlm5mpc3bbwlnj6eus4gaf2qifax36frrdxpj3b6ttg6req",
-  //   attributes: []
-  // }
+
   // TODO vérifier si le CID existe déjà et annuler la transaction
   const uploadedJson = await uploadJsonFile(certificate);
   const uploadedJsonCID = uploadedJson?.cid;
