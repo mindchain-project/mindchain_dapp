@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
         hostname: 'gateway.pinata.cloud',
         pathname: '/ipfs/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'aqua-biological-trout-497.mypinata.cloud',
+        pathname: '/ipfs/**',
+      },
     ],
   },
 };

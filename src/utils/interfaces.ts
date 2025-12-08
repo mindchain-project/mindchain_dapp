@@ -28,30 +28,32 @@ export interface GenerativeResultData {
   cid?: string;
 }
 
-
-export interface CertificateFormData {
-  title: string;
-  description: string;
-  uploadedFile: File | null;
+export interface CertificateIteration {
   prompt: string;
   model: string;
   provider: string;
   mode: string;
   sourceFile: File | null;
-  sourceFileDesc: string;
+  sourceFileDesc?: string;
   personalData: boolean;
   ipfsPublish: boolean;
   iterationImage: File | null;
+}
+
+
+export interface CertificateFormData {
+  title: string;
+  description: string;
+  uploadedFile: File | null;
+
+  iterations: CertificateIteration[];
+  
   legal: {
     authorshipConfirmation: boolean;
     thirdPartyRights: boolean;
     exploitationRights: boolean;
     license: string;
   };
-  iterations: Array<{
-    image: File | null;
-    description: string;
-  }>;
   parameters: {
     mainProvider: string;
     modelData: string;

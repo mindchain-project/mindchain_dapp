@@ -5,6 +5,7 @@ import { Blob } from "buffer";
 import { PinataUploadResponse } from "../utils/interfaces";
 import { v4 as uuidv4 } from "uuid";
 
+
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT || "",
   pinataGateway: process.env.PINATA_GATEWAY || "",
@@ -30,21 +31,23 @@ export async function uploadTextFile() {
 }
 //await uploadTextFile();
 
-export async function uploadImageFile(img_file: File, title: string = "image.png", version = "0") {
+export async function uploadImageFile(img_file: File) : Promise<string> {
+  
+  console.log("Uploading image file:", img_file);
+  const ipfsUrl = `https://${process.env.PINATA_GATEWAY}/ipfs/`
   try {
     const uploadedImage: PinataUploadResponse = await pinata.upload.public.file(img_file)
     .name(img_file.name)
     .keyvalues({
-      version: version
+      app: "mindchain_dapp"
     })
     .group("91935178-cd37-480e-849b-255a49a334fc");
-    return uploadedImage.cid;
+    return `${ipfsUrl}${uploadedImage.cid}`;
   } catch (error) {
     console.log("Error while uploading image file: " + error);
-    return undefined;
+    return `${ipfsUrl}/bafybeidpcbs5gklqwqgb22hsmb5vlyv242lvttlpenmapb72fxjrnsawde`; // cid de mindchain
   }
 }
-//img_cid = await uploadImageFile();
 
 
 export async function uploadJsonFile(json_content: object) {

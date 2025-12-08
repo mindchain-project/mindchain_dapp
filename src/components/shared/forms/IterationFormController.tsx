@@ -1,30 +1,42 @@
 import { useState } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
-import { Label } from "@radix-ui/react-label";
 import { X } from "lucide-react";
+import { Root as CollapsibleRoot, Trigger as CollapsibleTrigger, Content as CollapsibleContent } from "@radix-ui/react-collapsible";
+import { Cross2Icon, RowSpacingIcon } from "@radix-ui/react-icons";
 
-const IterationFormController = () => {
-  const { control } = useFormContext();
+interface IterationFormControllerProps {
+  index: number;
+  iterationNumber: number;
+  removeIteration: () => void;
+}
+
+const IterationFormController = ({ index, iterationNumber, removeIteration }: IterationFormControllerProps) => {
+  const { register, control } = useFormContext();
   const [sourcePreview, setSourcePreview] = useState<File | null>(null);
   const [iterationPreview, setIterationPreview] = useState<File | null>(null);
-
   const hasSource = Boolean(sourcePreview);
+  const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Label className="mt-4 mb-2 block text-lg font-bold text-white before:content-['2._'] before:mr-2">
-        Processus créatif - itérations
-      </Label>
-
+    <CollapsibleRoot className="w-[80%]" open={open} onOpenChange={setOpen}>
+    <div className="flex items-center justify-between"> Itération #{iterationNumber}
+      <CollapsibleTrigger asChild>
+					<button className="inline-flex size-[25px] items-center justify-center rounded-full text-violet11 shadow-[0_2px_10px] shadow-blackA4 outline-none hover:bg-violet3 focus:shadow-[0_0_0_2px] focus:shadow-black data-[state=closed]:bg-blue data-[state=open]:bg-violet3">
+						{open ? <Cross2Icon /> : <RowSpacingIcon />}
+					</button>
+				</CollapsibleTrigger>
+    </div>
+    <CollapsibleContent>
       {/* PROMPT */}
       <Controller
-        name="prompt"
+        name={`iterations.${index}.prompt`}
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Texte du prompt *</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Texte du prompt *</FormLabel>
             <FormControl>
               <textarea
                 {...field}
@@ -39,12 +51,12 @@ const IterationFormController = () => {
 
       {/* MODEL */}
       <Controller
-        name="model"
+        name={`iterations.${index}.model`}
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Modèle utilisé *</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Modèle utilisé *</FormLabel>
             <FormControl>
               <select
                 {...field}
@@ -65,12 +77,12 @@ const IterationFormController = () => {
 
       {/* PROVIDER */}
       <Controller
-        name="provider"
+        name={`iterations.${index}.provider`}
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Fournisseur du modèle *</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Fournisseur du modèle *</FormLabel>
             <FormControl>
               <select
                 {...field}
@@ -91,12 +103,12 @@ const IterationFormController = () => {
 
       {/* MODE */}
       <Controller
-        name="mode"
+        name={`iterations.${index}.mode`}
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Mode *</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Mode *</FormLabel>
             <FormControl>
               <select
                 {...field}
@@ -116,11 +128,11 @@ const IterationFormController = () => {
 
       {/* SOURCE FILE */}
       <Controller
-        name="sourceFile"
+        name={`iterations.${index}.sourceFile`}
         control={control}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Image source utilisée</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Image source utilisée</FormLabel>
             <FormControl>
               <div className="relative">
                 <input
@@ -161,12 +173,12 @@ const IterationFormController = () => {
 
       {/* SOURCE FILE DESCRIPTION */}
       <Controller
-        name="sourceFileDesc"
+        name={`iterations.${index}.sourceFileDesc`}
         control={control}
         rules={hasSource ? { required: true } : undefined}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Description du fichier source</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Description du fichier source</FormLabel>
             <FormControl>
               <textarea
                 {...field}
@@ -181,11 +193,11 @@ const IterationFormController = () => {
 
       {/* PERSONAL DATA */}
       <Controller
-        name="personalData"
+        name={`iterations.${index}.personalData`}
         control={control}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Données personnelles *</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Données personnelles *</FormLabel>
             <FormControl>
               <div className="flex space-x-4">
                 <label className="inline-flex items-center">
@@ -213,11 +225,11 @@ const IterationFormController = () => {
 
       {/* IPFS PUBLISH */}
       <Controller
-        name="ipfsPublish"
+        name={`iterations.${index}.ipfsPublish`}
         control={control}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Publication IPFS *</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Publication IPFS *</FormLabel>
             <FormControl>
               <div className="flex space-x-4">
                 <label className="inline-flex items-center">
@@ -245,15 +257,15 @@ const IterationFormController = () => {
 
       {/* ITERATION RESULT IMAGE */}
       <Controller
-        name="iterationImage"
+        name={`iterations.${index}.iterationImage`}
         control={control}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Image résultat</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Image résultat</FormLabel>
             <FormControl>
               <div className="relative">
                 <input
-                  id="iterationImage"
+                  id={`iterationImage${index}`}
                   type="file"
                   accept="image/*"
                   className="hidden"
@@ -287,6 +299,16 @@ const IterationFormController = () => {
           </FormItem>
         )}
       />
+    </CollapsibleContent>
+    <button
+      type="button"
+      onClick={removeIteration}
+      className="bg-red-700 mt-4 text-white px-3 py-1 rounded-md flex items-center"
+    >
+      <X size={14} />
+    </button>
+    </CollapsibleRoot>
+
     </>
   );
 };

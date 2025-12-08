@@ -10,14 +10,6 @@ const ParametersFormController = () => {
 
   return (
     <div className="space-y-4">
-      <Label
-        htmlFor="parameters"
-        className="mt-4 mb-2 block text-lg font-bold text-white 
-        before:content-['3._'] before:mr-2"
-      >
-        Paramètres techniques généraux
-      </Label>
-
       {/* MAIN PROVIDER */}
       <Controller
         name="parameters.mainProvider"

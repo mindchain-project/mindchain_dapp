@@ -1,25 +1,16 @@
 import { useFormContext, Controller } from "react-hook-form";
 import { FormItem, FormControl, FormLabel } from "@/components/ui/form";
-import { Label } from "@radix-ui/react-label";
 
 const LegalFormController = () => {
   const { control } = useFormContext();
 
   return (
     <div className="space-y-4">
-      <Label
-        htmlFor="legal"
-        className="mt-4 mb-2 block text-lg font-bold text-white 
-        before:content-['4._'] before:mr-2"
-      >
-        Déclarations juridiques
-      </Label>
-
       {/* AUTHORSHIP */}
       <Controller
         name="legal.authorshipConfirmation"
         control={control}
-        rules={{ required: true }}
+        //rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
             <FormControl>
@@ -42,7 +33,7 @@ const LegalFormController = () => {
       <Controller
         name="legal.thirdPartyRights"
         control={control}
-        rules={{ required: true }}
+        //rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
             <FormControl>
@@ -65,7 +56,7 @@ const LegalFormController = () => {
       <Controller
         name="legal.exploitationRights"
         control={control}
-        rules={{ required: true }}
+        //rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
             <FormControl>
@@ -88,7 +79,7 @@ const LegalFormController = () => {
       <Controller
         name="legal.license"
         control={control}
-        rules={{ required: true }}
+        //rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Type de licence *</FormLabel>

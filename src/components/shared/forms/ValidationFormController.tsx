@@ -2,7 +2,13 @@ import { useFormContext, Controller } from "react-hook-form";
 import { FormItem, FormControl } from "@/components/ui/form";
 import { Label } from "@radix-ui/react-label";
 import Link from "next/link";
-import { Input } from "@/components/ui/input";
+
+type ValidationFieldName = 
+  | "validation.processConfirmation"
+  | "validation.certification" 
+  | "validation.privacy"
+  | "validation.terms"
+  | "validation.ownership";
 
 const ValidationFormController = () => {
   const { control } = useFormContext();
@@ -48,20 +54,12 @@ const ValidationFormController = () => {
 
   return (
     <div className="space-y-4">
-      <Label
-        htmlFor="validation"
-        className="mt-4 mb-2 block text-lg font-bold text-white 
-        before:content-['5._'] before:mr-2"
-      >
-        Validation finale
-      </Label>
-
       {fields.map((f) => (
         <Controller
           key={f.name}
-          name={f.name as any}
+          name={f.name as ValidationFieldName}
           control={control}
-          rules={{ required: true }}
+          //rules={{ required: true }}
           render={({ field }) => (
             <FormItem>
               <FormControl>
