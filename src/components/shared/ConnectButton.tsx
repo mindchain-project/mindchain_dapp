@@ -8,7 +8,7 @@ export default function ConnectButton() {
         {isConnected ? (
             <appkit-button />
         ) : (
-            <button className="menu-button" onClick={() => open()}>Se connecter</button>
+            <button className="menu-button btn-action" onClick={() => open()}>Se connecter</button>
         )}
     </>
     );

@@ -1,149 +1,84 @@
 import { useFormContext, Controller } from "react-hook-form";
 import { FormItem, FormControl } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
 const ValidationFormController = () => {
   const { control } = useFormContext();
+
+  const fields = [
+    {
+      name: "validation.processConfirmation",
+      label: "Je confirme l’exactitude du processus créatif. *",
+    },
+    {
+      name: "validation.certification",
+      label: "Je valide la certification de cette œuvre. *",
+    },
+    {
+      name: "validation.privacy",
+      label: (
+        <>
+          J&apos;accepte la{" "}
+          <Link href="/" className="text-blue-400 underline">
+            Politique de confidentialité
+          </Link>{" "}
+          (RGPD). *
+        </>
+      ),
+    },
+    {
+      name: "validation.terms",
+      label: (
+        <>
+          J&apos;accepte les{" "}
+          <Link href="/" className="text-blue-400 underline">
+            CGU Mindchain
+          </Link>
+          . *
+        </>
+      ),
+    },
+    {
+      name: "validation.ownership",
+      label: "Je déclare être titulaire légitime des droits nécessaires. *",
+    },
+  ];
 
   return (
     <div className="space-y-4">
       <Label
         htmlFor="validation"
         className="mt-4 mb-2 block text-lg font-bold text-white 
-        before:content-['5._'] before:mr-2 before:text-white"
+        before:content-['5._'] before:mr-2"
       >
-        Déclarations juridiques (sans licence)
+        Validation finale
       </Label>
 
-      {/* 1 — Confirmation du processus créatif */}
-      <Controller
-        name="validation.processConfirmation"
-        control={control}
-        render={({ field }) => (
-          <FormItem>
-            <FormControl>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={field.value || false}
-                  onChange={(e) => field.onChange(e.target.checked)}
-                  required
-                />
-                <p className="text-sm text-white">
-                  Je confirme l’exactitude du processus créatif. *
-                </p>
-              </div>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-
-      {/* 2 — Certification de l’œuvre */}
-      <Controller
-        name="validation.certification"
-        control={control}
-        render={({ field }) => (
-          <FormItem>
-            <FormControl>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={field.value || false}
-                  onChange={(e) => field.onChange(e.target.checked)}
-                  required
-                />
-                <p className="text-sm text-white">
-                  Je valide la certification de cette œuvre. *
-                </p>
-              </div>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-
-      {/* 3 — RGPD */}
-      <Controller
-        name="validation.privacy"
-        control={control}
-        render={({ field }) => (
-          <FormItem>
-            <FormControl>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={field.value || false}
-                  onChange={(e) => field.onChange(e.target.checked)}
-                  required
-                />
-                <p className="text-sm text-white">
-                  J&apos;accepte la{" "}
-                  <Link href="/" className="text-purple-500 underline">
-                    Politique de confidentialité
-                  </Link>{" "}
-                  (RGPD). *
-                </p>
-              </div>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-
-      {/* 4 — CGU */}
-      <Controller
-        name="validation.terms"
-        control={control}
-        render={({ field }) => (
-          <FormItem>
-            <FormControl>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={field.value || false}
-                  onChange={(e) => field.onChange(e.target.checked)}
-                  required
-                />
-                <p className="text-sm text-white">
-                  J&apos;accepte les{" "}
-                  <Link href="/" className="text-purple-500 underline">
-                    CGU Mindchain
-                  </Link>
-                  . *
-                </p>
-              </div>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-
-      {/* 5 — Titularité des droits */}
-      <Controller
-        name="validation.ownership"
-        control={control}
-        render={({ field }) => (
-          <FormItem>
-            <FormControl>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={field.value || false}
-                  onChange={(e) => field.onChange(e.target.checked)}
-                  required
-                />
-                <p className="text-sm text-white">
-                  Je déclare être titulaire légitime des droits nécessaires. *
-                </p>
-              </div>
-            </FormControl>
-          </FormItem>
-        )}
-      />
+      {fields.map((f) => (
+        <Controller
+          key={f.name}
+          name={f.name as any}
+          control={control}
+          rules={{ required: true }}
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={field.value || false}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                  />
+                  <span className="text-sm text-white">{f.label}</span>
+                </label>
+                
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      ))}
     </div>
   );
 };

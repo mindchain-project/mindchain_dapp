@@ -26,7 +26,7 @@ const Studio = () => {
           <Generation address={address || ""} />
         )}
         {activeTab === "certification" && (
-          <Certification address={address || ""} model="defaultModel" />
+          <Certification address={address || ""} />
         )}
         {activeTab === "history" && (
           <History address={address || ""} />

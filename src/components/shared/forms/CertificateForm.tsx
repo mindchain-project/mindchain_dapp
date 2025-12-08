@@ -6,7 +6,7 @@ import ParametersFormController from '@/components/shared/forms/ParametersFormCo
 import LegalFormController from '@/components/shared/forms/LegalFormController';
 import ValidationFormController from '@/components/shared/forms/ValidationFormController';
 import { generateCertificate } from '@/services/certificate';
-import { CertificateFormData } from '@/services/certificate';
+import { CertificateFormData } from '@/utils/interfaces';
 import { useAppKitAccount } from "@reown/appkit/react";
 
 const CertificateForm = () => {
@@ -24,17 +24,17 @@ const CertificateForm = () => {
       sourceFile: null,
       sourceFileDesc: '',
       personalData: false,
-      ipfsPublish: false,
+      ipfsPublish: true,
       iterationImage: null,
       legal: {
         authorshipConfirmation: false,
         thirdPartyRights: false,
         exploitationRights: false,
-        license: false,
+        license: '',
       },
       iterations: [],
       parameters: {
-        'main-provider': '',
+        mainProvider: '',
         modelData: '',
         logsFile: null,
       },
@@ -48,10 +48,15 @@ const CertificateForm = () => {
     },
   });
 
-  const onSubmit = (data: CertificateFormData) => {
-    console.log("FORM FINAL SUBMIT:", data);
-    generateCertificate(data, address);
-  };
+const onSubmit = async (data: CertificateFormData) => {
+  console.log("FORM FINAL SUBMIT:", data);
+  try {
+    await generateCertificate(data, address);
+    console.log("CERTIFICATE GENERATED");
+  } catch (e) {
+    console.error("CERTIFICATE ERROR:", e);
+  }
+};
 
   return (
     <FormProvider {...methods}>
@@ -59,7 +64,7 @@ const CertificateForm = () => {
         <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
           <ArtworkFormController />
           <IterationFormController />
-          <button className="btn-action px-6 mb-20">
+          <button type="button" className="btn-action px-6 mb-20">
             Ajouter une itération
           </button>
           <ParametersFormController />
@@ -72,6 +77,7 @@ const CertificateForm = () => {
             type="button"
             className="btn-action m-4 bg-red-600 hover:bg-red-700"
             onClick={() => {
+              console.log("FORM RESET");
               methods.reset();
             }}
           >Abandonner

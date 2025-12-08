@@ -1,297 +1,294 @@
-import { useEffect, useState } from 'react';
-import { useFormContext, Controller, set } from 'react-hook-form';
-import { FormItem, FormLabel, FormControl } from '@/components/ui/form';
-import { Label } from '@radix-ui/react-label';
+import { useState } from "react";
+import { useFormContext, Controller } from "react-hook-form";
+import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { Label } from "@radix-ui/react-label";
 import { X } from "lucide-react";
 
 const IterationFormController = () => {
+  const { control } = useFormContext();
+  const [sourcePreview, setSourcePreview] = useState<File | null>(null);
+  const [iterationPreview, setIterationPreview] = useState<File | null>(null);
 
-    const { control, watch } = useFormContext();
+  const hasSource = Boolean(sourcePreview);
 
-    const [sourceFile, setSourceFile] = useState<File | null>(null);
-    const [iterationImage, setIterationImage] = useState<File | null>(null);
-
-    const watchedPrompt = watch('prompt');
-    const watchedModel = watch('model');
-    const watchedProvider = watch('provider');
-    const watchedMode = watch('mode');
-    const watchedSourceFileDesc = watch('sourceFileDesc');
-    const watchedPersonalData = watch('personalData');
-    const watchedIpfsPublish = watch('ipfsPublish');
-    const watchedIterationImage = watch('iterationImage');
-
-    useEffect(() => {
-        console.log("ITERATION :", watchedPrompt, watchedModel, watchedProvider, watchedMode, watchedSourceFileDesc, watchedPersonalData, watchedIpfsPublish, watchedIterationImage);
-    }, [watchedPrompt, watchedModel, watchedProvider, watchedMode, watchedSourceFileDesc, watchedPersonalData, watchedIpfsPublish, watchedIterationImage]);
-
-    return (
+  return (
     <>
-    <Label htmlFor="iteration" className="mt-4 mb-2 block text-lg font-bold text-white before:content-['2._'] before:mr-2 before:text-white">
+      <Label className="mt-4 mb-2 block text-lg font-bold text-white before:content-['2._'] before:mr-2">
         Processus créatif - itérations
-    </Label>
-    {/* PROMPT */}
-    <Controller
+      </Label>
+
+      {/* PROMPT */}
+      <Controller
         name="prompt"
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
-            <FormItem>
+          <FormItem>
             <FormLabel>Texte du prompt *</FormLabel>
             <FormControl>
-                <textarea
+              <textarea
                 {...field}
                 value={field.value || ""}
                 onChange={(e) => field.onChange(e.target.value)}
-                className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border h-25 px-3 py-2 resize-y"
-                placeholder='Entrez le texte du prompt ici...'
-                />
+                className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 resize-y"
+              />
             </FormControl>
-            </FormItem>
+          </FormItem>
         )}
-        />
-    {/* MODEL */}
-    <Controller
+      />
+
+      {/* MODEL */}
+      <Controller
         name="model"
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
-            <FormItem>
+          <FormItem>
             <FormLabel>Modèle utilisé *</FormLabel>
             <FormControl>
-                <select
+              <select
                 {...field}
                 value={field.value || ""}
                 onChange={(e) => field.onChange(e.target.value)}
-                className="text-sm bg-gray-100 text-blue-700 rounded-md border py-2"
-                >
+                className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border py-2"
+              >
                 <option value="">-- Choisir un modèle --</option>
                 <option value="openai">OpenAI</option>
                 <option value="midjourney">Midjourney</option>
                 <option value="gemini">Gemini</option>
                 <option value="flux">Flux</option>
-                </select>
+              </select>
             </FormControl>
-            </FormItem>
+          </FormItem>
         )}
-        />
-    {/* PROVIDER */}
-    <Controller
+      />
+
+      {/* PROVIDER */}
+      <Controller
         name="provider"
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
-            <FormItem>
+          <FormItem>
             <FormLabel>Fournisseur du modèle *</FormLabel>
             <FormControl>
-                <select
+              <select
                 {...field}
                 value={field.value || ""}
                 onChange={(e) => field.onChange(e.target.value)}
-                className="text-sm bg-gray-100 text-blue-700 rounded-md border py-2"
-                >
+                className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border py-2"
+              >
                 <option value="">-- Choisir un fournisseur --</option>
                 <option value="openai">OpenAI</option>
                 <option value="midjourney">Midjourney</option>
                 <option value="gemini">Gemini</option>
                 <option value="flux">Flux</option>
-                </select>
+              </select>
             </FormControl>
-            </FormItem>
+          </FormItem>
         )}
-        />
-    {/* MODE */}
-    <Controller
+      />
+
+      {/* MODE */}
+      <Controller
         name="mode"
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
-            <FormItem>
+          <FormItem>
             <FormLabel>Mode *</FormLabel>
             <FormControl>
-                <select
+              <select
                 {...field}
                 value={field.value || ""}
                 onChange={(e) => field.onChange(e.target.value)}
                 className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border py-2"
-                >
+              >
                 <option value="">-- Choisir un mode --</option>
-                <option value="image-to-image">Image to image</option>
-                <option value="text-to-image">Text to image</option>
-                <option value="in-painting">In painting</option>
-                </select>
+                <option value="text-to-image">Text to Image</option>
+                <option value="image-to-image">Image to Image</option>
+                <option value="in-painting">In Painting</option>
+              </select>
             </FormControl>
-            </FormItem>
+          </FormItem>
         )}
-        />
-        {/* SOURCE FILE UPLOAD */}
-        <Controller
+      />
+
+      {/* SOURCE FILE */}
+      <Controller
         name="sourceFile"
         control={control}
         render={({ field }) => (
-            <FormItem>
-            <FormLabel>Image source utilisée dans cette itération</FormLabel>
+          <FormItem>
+            <FormLabel>Image source utilisée</FormLabel>
             <FormControl>
-                <div className="relative">
+              <div className="relative">
                 <input
-                    id="sourceFile"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    field.onChange(file);
-                    setSourceFile(file);
-                    }}
+                  id="sourceFile"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    field.onChange(f);
+                    setSourcePreview(f);
+                  }}
                 />
                 <label
-                    htmlFor="sourceFile"
-                    className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 cursor-pointer"
+                  htmlFor="sourceFile"
+                  className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 cursor-pointer"
                 >
-                    {sourceFile ? sourceFile.name : "Importer l'image source"}
+                  {sourcePreview ? sourcePreview.name : "Importer l'image source"}
                 </label>
-                {sourceFile && (
-                    <button
+
+                {sourcePreview && (
+                  <button
                     type="button"
-                    onClick={() => setSourceFile(null)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-red-500 text-white rounded-full"
-                    >
+                    onClick={() => {
+                      setSourcePreview(null);
+                      field.onChange(null);
+                    }}
+                    className="absolute text-sm right-3 top-1/2 -translate-y-1/2 bg-red-600 text-white p-1 rounded-full"
+                  >
                     <X size={14} />
-                    </button>
+                  </button>
                 )}
-                </div>
+              </div>
             </FormControl>
-            </FormItem>
+          </FormItem>
         )}
-        />
-        {/* SOURCE FILE DESCRIPTION */}
-        <Controller
-            name="sourceFileDesc"
-            control={control}
-            rules={sourceFile ? { required: true } : undefined}
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Description du fichier source</FormLabel>
-                <FormControl>
-                    <textarea
-                    {...field}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value)}
-                    className="w-full text-sm bg-gray-100 border h-15 resize-y px-3 py-2 rounded-md text-blue-700"
-                    placeholder="Décrivez le fichier source utilisé pour cette itération."
-                    />
-                </FormControl>
-                </FormItem>
-            )}
-            />
-        {/* PERSONAL DATA */}
-        <Controller
-            name="personalData"
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Données personnelles *</FormLabel>
-                <FormControl>
-                    <div className="flex space-x-4">
-                    <label className="inline-flex items-center">
-                        <input
-                        type="radio"
-                        value="yes"
-                        checked={field.value === true}
-                        onChange={() => field.onChange(true)}
-                        />
-                        <span className="ml-2 text-white">Oui</span>
-                    </label>
-                    <label className="inline-flex items-center">
-                        <input
-                        type="radio"
-                        value="no"
-                        checked={field.value === false}
-                        onChange={() => field.onChange(false)}
-                        />
-                        <span className="ml-2 text-white">Non</span>
-                    </label>
-                    </div>
-                </FormControl>
-                </FormItem>
-            )}
-            />
-        {/* IPFS PUBLISH */}
-        <Controller
-            name="ipfsPublish"
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Publication IPFS *</FormLabel>
-                <FormControl>
-                    <div className="flex space-x-4">
-                    <label className="inline-flex items-center">
-                        <input
-                        type="radio"
-                        value="yes"
-                        checked={field.value === true}
-                        onChange={() => field.onChange(true)}
-                        />
-                        <span className="ml-2 text-white">Oui</span>
-                    </label>
-                    <label className="inline-flex items-center">
-                        <input
-                        type="radio"
-                        value="no"
-                        checked={field.value === false}
-                        onChange={() => field.onChange(false)}
-                        />
-                        <span className="ml-2 text-white">Non</span>
-                    </label>
-                    </div>
-                </FormControl>
-                </FormItem>
-            )}
-            />
-        {/* ITERATION IMAGE UPLOAD */}
-        <Controller
+      />
+
+      {/* SOURCE FILE DESCRIPTION */}
+      <Controller
+        name="sourceFileDesc"
+        control={control}
+        rules={hasSource ? { required: true } : undefined}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Description du fichier source</FormLabel>
+            <FormControl>
+              <textarea
+                {...field}
+                value={field.value || ""}
+                onChange={(e) => field.onChange(e.target.value)}
+                className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 resize-y"
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+
+      {/* PERSONAL DATA */}
+      <Controller
+        name="personalData"
+        control={control}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Données personnelles *</FormLabel>
+            <FormControl>
+              <div className="flex space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    checked={field.value === true}
+                    onChange={() => field.onChange(true)}
+                  />
+                  <span className="ml-2 text-sm text-white">oui</span>
+                </label>
+
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    checked={field.value === false}
+                    onChange={() => field.onChange(false)}
+                  />
+                  <span className="ml-2 text-sm text-white">non</span>
+                </label>
+              </div>
+            </FormControl>
+          </FormItem>
+        )}
+      />
+
+      {/* IPFS PUBLISH */}
+      <Controller
+        name="ipfsPublish"
+        control={control}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Publication IPFS *</FormLabel>
+            <FormControl>
+              <div className="flex space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    checked={field.value === true}
+                    onChange={() => field.onChange(true)}
+                  />
+                  <span className="ml-2 text-sm text-white">oui</span>
+                </label>
+
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    checked={field.value === false}
+                    onChange={() => field.onChange(false)}
+                  />
+                  <span className="ml-2 text-sm text-white">non</span>
+                </label>
+              </div>
+            </FormControl>
+          </FormItem>
+        )}
+      />
+
+      {/* ITERATION RESULT IMAGE */}
+      <Controller
         name="iterationImage"
         control={control}
         render={({ field }) => (
-            <FormItem>
-            <FormLabel>Image résultat de cette itération </FormLabel>
+          <FormItem>
+            <FormLabel>Image résultat</FormLabel>
             <FormControl>
-                <div className="relative">
+              <div className="relative">
                 <input
-                    id="iterationImage"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    field.onChange(file); 
-                    setIterationImage(file);
-                    }}
+                  id="iterationImage"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    field.onChange(f);
+                    setIterationPreview(f);
+                  }}
                 />
                 <label
-                    htmlFor="iterationImage"
-                    className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 cursor-pointer"
+                  htmlFor="iterationImage"
+                  className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 cursor-pointer"
                 >
-                    {iterationImage ? iterationImage.name : "Importer l'image résultat de l'itération"}
+                  {iterationPreview ? iterationPreview.name : "Importer l'image résultat"}
                 </label>
-                {iterationImage && (
-                    <button
+
+                {iterationPreview && (
+                  <button
                     type="button"
-                    onClick={() => setIterationImage(null)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-red-500 text-white rounded-full"
-                    >
+                    onClick={() => {
+                      setIterationPreview(null);
+                      field.onChange(null);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-600 text-white p-1 rounded-full"
+                  >
                     <X size={14} />
-                    </button>
+                  </button>
                 )}
-                </div>
+              </div>
             </FormControl>
-            </FormItem>
+          </FormItem>
         )}
-        />
-
+      />
     </>
-  )
-}
+  );
+};
 
-export default IterationFormController
+export default IterationFormController;

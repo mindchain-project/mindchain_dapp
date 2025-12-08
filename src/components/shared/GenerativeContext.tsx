@@ -1,33 +1,11 @@
 'use client';
-import React, { createContext, useContext, useState, Dispatch, SetStateAction } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import { GenerativeContextProps, GenerativeFormData, GenerativeResultData } from '@/utils/interfaces';
 // import { uploadImageFile } from '@/services/storage';
 import { useSignMessage } from "wagmi";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { type Address } from "viem";
 
-
-interface GenerativeContextProps {
-  promptRequest: GenerativeFormData;
-  promptResult: GenerativeResultData;
-  signature: string | undefined;
-  handleSignMsg: (msg: string) => Promise<string | undefined>;
-  setPromptRequest: Dispatch<SetStateAction<GenerativeFormData>>;
-  setPromptResult: Dispatch<SetStateAction<GenerativeResultData>>;
-}
-
-interface GenerativeFormData {
-  title: string ;
-  prompt: string ;
-  model: string;
-  uploadedFile: File | null;
-}
-
-export interface GenerativeResultData {
-  id: string;
-  url: string;
-  date: string;
-  cid?: string;
-}
 
 // Create the context
 const GenerativeContext = createContext<GenerativeContextProps | undefined>(undefined);

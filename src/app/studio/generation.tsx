@@ -1,8 +1,6 @@
-interface GenerationProps {
-  address: string;
-}
+import {StudioTabProps} from '@/utils/interfaces';
 
-const Generation = (props: GenerationProps) => {
+const Generation = (props: StudioTabProps) => {
 
   return (
      <section className="space-y-4 justify-self-center">

@@ -1,16 +1,14 @@
 'use server';
-import { PinataSDK, UploadResponse } from "pinata";
+import { PinataSDK } from "pinata";
 import { readFileSync }  from "node:fs";
 import { Blob } from "buffer";
+import { PinataUploadResponse } from "../utils/interfaces";
+import { v4 as uuidv4 } from "uuid";
 
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT || "",
   pinataGateway: process.env.PINATA_GATEWAY || "",
 });
-
-interface PinataUploadResponse extends UploadResponse {
-  cid: string;
-}
 
 export async function uploadTextFile() {
   try {
@@ -39,6 +37,7 @@ export async function uploadImageFile(img_file: File, title: string = "image.png
     .keyvalues({
       version: version
     })
+    .group("91935178-cd37-480e-849b-255a49a334fc");
     console.log(uploadedImage);
     return uploadedImage.cid;
   } catch (error) {
@@ -48,24 +47,20 @@ export async function uploadImageFile(img_file: File, title: string = "image.png
 //img_cid = await uploadImageFile();
 
 
-export async function uploadJsonFile(file_cid = "") {
+export async function uploadJsonFile(json_content: object) {
   try {
-    // Upload a public JSON file
-    const json_content = {
-      name: "Mindchain",
-      description: "Decentralized learning platform",
-      image: "ipfs://" + file_cid,
-      attributes: [
-        {
-          trait_type: "Platform",
-          value: "Decentralized Learning"
-        }
-      ]
-    };
-    const upload = await pinata.upload.public.json(json_content);
-    console.log(upload);
+    const filename = `${uuidv4()}.json`;
+    const uploadedJson = await pinata.upload.public.json(json_content)
+    .name(filename)
+    .keyvalues({
+      app: "mindchain_dapp"
+    })
+    .group("91935178-cd37-480e-849b-255a49a334fc");
+    console.log(uploadedJson);
+    return uploadedJson;
   } catch (error) {
     console.log(error);
+    return null;
   }
 }
 //await uploadJsonFile(img_cid);
@@ -76,7 +71,7 @@ export async function retrieveFile(cid = "") {
     // Get a public file using its CID
     const public_image_cid = cid;
     const public_data = await pinata.gateways.public.get(public_image_cid);
-    console.log(public_data)
+    console.log("ipfs data :",public_data)
     // // Get a private file using its CID
     // const private_image_cid = process.env.PRIVATE_IMAGE_CID || "";
     // const private_data = await pinata.gateways.private.get(private_image_cid);

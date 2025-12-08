@@ -1,11 +1,7 @@
+import {StudioTabProps} from '@/utils/interfaces';
 import CertificateForm from '@/components/shared/forms/CertificateForm'
 
-interface CertificationProps {
-  address: string;
-  model: string;
-}
-
-const Certification = (props: CertificationProps) => {
+const Certification = (props: StudioTabProps) => {
     console.log("Certification props:", props);
   return (
      <section className="space-y-4 justify-self-center">
