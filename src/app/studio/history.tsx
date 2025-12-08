@@ -3,44 +3,51 @@ import { BrowserProvider, Contract } from "ethers";
 import { retrieveFile } from "@/services/storage";
 import { MINDCHAIN_NFT_ADDRESS, MINDCHAIN_NFT_ABI } from "@/contracts/MindchainNFT";
 import Image from "next/image";
+import {StudioTabProps} from '@/utils/interfaces';
 
 interface NFTItem {
   tokenId: string;
   metadata: any;
 }
 
-export default function History() {
+export default function History(props: StudioTabProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [nfts, setNfts] = useState<NFTItem[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // ⬅ FIX 1 : mettre le setAddress dans un useEffect
+  useEffect(() => {
+    if (props.address) {
+      setAddress(props.address);
+    }
+  }, [props.address]);
+
   async function fetchUserNFTs() {
     try {
+      if (!address) {
+        console.warn("No user address yet, skipping fetch.");
+        return;
+      }
+
       setLoading(true);
 
       const provider = new BrowserProvider((window as any).ethereum);
       await provider.send("eth_requestAccounts", []);
-      const signer = await provider.getSigner();
-      const userAddress = await signer.getAddress();
-      setAddress(userAddress);
-
       const contract = new Contract(MINDCHAIN_NFT_ADDRESS, MINDCHAIN_NFT_ABI[0].abi, provider);
 
-      const balance = await contract.balanceOf(userAddress);
+      const balance = await contract.balanceOf(address);
       console.log("User balance:", balance.toString());
 
       const results: NFTItem[] = [];
 
       for (let i = 0; i < Number(balance); i++) {
-        // 1) Récupérer tokenId
-        const tokenId = await contract.tokenOfOwnerByIndex(userAddress, i);
+        const tokenId = await contract.tokenOfOwnerByIndex(address, i);
 
-        // 2) Récupérer la metadataCid / tokenURI
         const uri = await contract.tokenURI(tokenId);
-        const ipfsData = await retrieveFile(uri);
-        console.log("IPFS Data:", ipfsData);
+        const ipfsData = await retrieveFile(uri);  // transforme ipfs:// en gateway http
         const response = await fetch(ipfsData);
         const json = await response.json();
+
         results.push({
           tokenId: tokenId.toString(),
           metadata: json,
@@ -55,9 +62,10 @@ export default function History() {
     }
   }
 
+  // ⬅ FIX 2 : lancer fetchUserNFTs seulement quand address existe
   useEffect(() => {
-    fetchUserNFTs();
-  }, []);
+    if (address) fetchUserNFTs();
+  }, [address]);
 
   return (
     <section className="space-y-4 justify-self-center">
@@ -91,7 +99,9 @@ export default function History() {
                     <Image
                       src={nft.metadata.image.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")}
                       alt="NFT"
-                      className="w-16 h-16 object-cover rounded" width={64} height={64}
+                      className="w-16 h-16 object-cover rounded"
+                      width={64}
+                      height={64}
                     />
                   )}
                 </td>

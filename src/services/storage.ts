@@ -38,10 +38,10 @@ export async function uploadImageFile(img_file: File, title: string = "image.png
       version: version
     })
     .group("91935178-cd37-480e-849b-255a49a334fc");
-    console.log(uploadedImage);
     return uploadedImage.cid;
   } catch (error) {
-    console.log(error);
+    console.log("Error while uploading image file: " + error);
+    return undefined;
   }
 }
 //img_cid = await uploadImageFile();
@@ -56,10 +56,10 @@ export async function uploadJsonFile(json_content: object) {
       app: "mindchain_dapp"
     })
     .group("91935178-cd37-480e-849b-255a49a334fc");
-    console.log(uploadedJson);
+    
     return uploadedJson;
   } catch (error) {
-    console.log(error);
+    console.log("Error while uploading JSON file: " + error);
     return null;
   }
 }
@@ -71,7 +71,7 @@ export async function retrieveFile(cid = "") {
     // Get a public file using its CID
     const public_image_cid = cid;
     const public_data = await pinata.gateways.public.get(public_image_cid);
-    console.log("ipfs data :",public_data)
+    
     // // Get a private file using its CID
     // const private_image_cid = process.env.PRIVATE_IMAGE_CID || "";
     // const private_data = await pinata.gateways.private.get(private_image_cid);

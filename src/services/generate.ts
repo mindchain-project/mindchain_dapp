@@ -8,8 +8,7 @@ import {readFile, writeFile} from "fs/promises";
 import {readFileSync} from "fs";
 import { ImageToImageArgs, TextToImageArgs } from "@huggingface/inference";
 import { uploadImageFile } from "./storage";
-
-import { GenerativeResultData } from "@/components/shared/GenerativeContext";
+import { GenerativeResultData } from '@/utils/interfaces';
 
 
 /* Google Gemini API */
