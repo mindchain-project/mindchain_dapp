@@ -96,9 +96,10 @@ export async function mintCertificate(metadataCid: string, walletProvider: any, 
 
 
 export async function generateCertificate(form: CertificateFormData, address?: string, walletProvider?: any) {
-  console.log("Generating certificate with form data:", form);
-  console.log("Using address:", address);
-  console.log("Using walletProvider:", walletProvider);
+
+  if (!walletProvider) throw new Error("❌ Provider wallet manquant !");
+  if (!address) throw new Error("❌ Adresse wallet manquante !");
+  
   // Utilitaires pour obtenir des métadonnées fichiers
   const getFileMetadata = (file: File | null, role: string, url: string) => {
     if (!file) return null;
