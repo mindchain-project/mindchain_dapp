@@ -11,7 +11,7 @@ interface IterationFormControllerProps {
 }
 
 const IterationFormController = ({ index, removeIteration }: IterationFormControllerProps) => {
-  const { register, control } = useFormContext();
+  const { control, formState: { errors } } = useFormContext();
   const [sourcePreview, setSourcePreview] = useState<File | null>(null);
   const [iterationPreview, setIterationPreview] = useState<File | null>(null);
   const hasSource = Boolean(sourcePreview);
@@ -31,7 +31,7 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
       <Controller
         name={`iterations.${index}.prompt`}
         control={control}
-        rules={{ required: true }}
+        rules={{ required: "Le texte du prompt est obligatoire." }}
         render={({ field }) => (
           <FormItem>
             <FormLabel style={{ marginTop: "10px" }}>Texte du prompt *</FormLabel>
@@ -43,6 +43,9 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
                 className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 resize-y"
               />
             </FormControl>
+            {errors.iterations && Array.isArray(errors.iterations) && errors.iterations[index]?.prompt && (
+              <p className="text-red-600 text-sm mt-1">{errors.iterations[index]?.prompt?.message}</p>
+            )}
           </FormItem>
         )}
       />
@@ -51,7 +54,7 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
       <Controller
         name={`iterations.${index}.model`}
         control={control}
-        rules={{ required: true }}
+        rules={{ required: "Le modèle est obligatoire." }}
         render={({ field }) => (
           <FormItem>
             <FormLabel style={{ marginTop: "10px" }}>Modèle utilisé *</FormLabel>
@@ -69,6 +72,9 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
                 <option value="flux">Flux</option>
               </select>
             </FormControl>
+            {errors.iterations && Array.isArray(errors.iterations) && errors.iterations[index]?.model && (
+              <p className="text-red-600 text-sm mt-1">{errors.iterations[index]?.model?.message}</p>
+            )}
           </FormItem>
         )}
       />
@@ -77,7 +83,7 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
       <Controller
         name={`iterations.${index}.provider`}
         control={control}
-        rules={{ required: true }}
+        rules={{ required: "Le fournisseur est obligatoire." }}
         render={({ field }) => (
           <FormItem>
             <FormLabel style={{ marginTop: "10px" }}>Fournisseur du modèle *</FormLabel>
@@ -95,6 +101,9 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
                 <option value="flux">Flux</option>
               </select>
             </FormControl>
+            {errors.iterations && Array.isArray(errors.iterations) && errors.iterations[index]?.provider && (
+              <p className="text-red-600 text-sm mt-1">{errors.iterations[index]?.provider?.message}</p>
+            )}
           </FormItem>
         )}
       />
@@ -103,7 +112,7 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
       <Controller
         name={`iterations.${index}.mode`}
         control={control}
-        rules={{ required: true }}
+        rules={{ required: "Le mode est obligatoire." }}
         render={({ field }) => (
           <FormItem>
             <FormLabel style={{ marginTop: "10px" }}>Mode *</FormLabel>
@@ -120,6 +129,9 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
                 <option value="in-painting">In Painting</option>
               </select>
             </FormControl>
+            {errors.iterations && Array.isArray(errors.iterations) && errors.iterations[index]?.mode && (
+              <p className="text-red-600 text-sm mt-1">{errors.iterations[index]?.mode?.message}</p>
+            )}
           </FormItem>
         )}
       />

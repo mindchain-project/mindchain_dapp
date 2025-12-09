@@ -37,7 +37,7 @@ export async function compressImage(file: File, maxWidth = 1024, quality = 0.7):
 
 
 const ArtworkFormController = () => {
-  const { control } = useFormContext();
+  const { control, formState: { errors } } = useFormContext();
   const [filePreview, setFilePreview] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ const ArtworkFormController = () => {
       <Controller
         name="title"
         control={control}
-        rules={{ required: true }}
+        rules={{ required: "Le titre est obligatoire." }}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Titre de l’œuvre *</FormLabel>
@@ -59,6 +59,9 @@ const ArtworkFormController = () => {
                 className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2"
               />
             </FormControl>
+            {errors.title?.message && typeof errors.title.message === "string" && (
+              <p className="text-red-500 text-sm">{errors.title.message}</p>
+            )}
           </FormItem>
         )}
       />
@@ -67,7 +70,7 @@ const ArtworkFormController = () => {
       <Controller
         name="description"
         control={control}
-        rules={{ required: true }}
+        rules={{ required: "La description est obligatoire." }}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Description courte *</FormLabel>
@@ -79,6 +82,9 @@ const ArtworkFormController = () => {
                 className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 resize-y"
               />
             </FormControl>
+            {errors.description?.message && typeof errors.description.message === "string" && (
+              <p className="text-red-500 text-sm">{errors.description.message}</p>
+            )}
           </FormItem>
         )}
       />
@@ -86,7 +92,7 @@ const ArtworkFormController = () => {
       <Controller
         name="finalArtworkFile"
         control={control}
-        rules={{ required: true }}
+        rules={{ required: "L'image finale est obligatoire." }}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Image finale *</FormLabel>
@@ -125,7 +131,6 @@ const ArtworkFormController = () => {
                 >
                   {field.value ? field.value.name : "Importer l'image finale"}
                 </label>
-
                 {/* Remove file */}
                 {field.value && (
                   <button
@@ -171,6 +176,9 @@ const ArtworkFormController = () => {
                   )}
                 />
                 </div>
+                {errors.finalArtworkFile?.message && typeof errors.finalArtworkFile.message === "string" && (
+                  <p className="text-red-500 text-sm">{errors.finalArtworkFile.message}</p>
+                )}
                 {/* PREVIEW */}
                 {previewUrl && (
                   <Image

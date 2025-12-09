@@ -19,6 +19,7 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
   const { walletProvider: walletProvider } = useAppKitProvider("eip155");
 
   const methods = useForm<CertificateFormData>({
+    mode: "onSubmit",
     defaultValues: {
       title: '',
       description: '',
@@ -158,7 +159,10 @@ const onSubmit = async (data: CertificateFormData) => {
           <ValidationFormController />
 
           <button type="submit" className="btn-action margin-right-20">
-            Certifier l&apos;oeuvre
+            {methods.formState.isSubmitting && (
+              <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+            )}
+            {methods.formState.isSubmitting ? "Certification en cours..." : "Certifier l'oeuvre"}
           </button>
           <button
             type="button"

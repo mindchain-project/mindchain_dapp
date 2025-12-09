@@ -3,17 +3,6 @@ import { CertificateFormData, MintResult, CertificateFileMetadata } from "../uti
 import { uploadImageFile, uploadJsonFile, deleteFile } from "./storage";
 import { ethers } from "ethers";
 import { MINDCHAIN_NFT_ADDRESS, MINDCHAIN_NFT_ABI } from "../contracts/MindchainNFT";
-// import { useReadContract } from "wagmi";
-
-// async function tokenId() {
-//   const result = useReadContract({
-//     abi: MINDCHAIN_NFT_ABI[0].abi,
-//     address: MINDCHAIN_NFT_ADDRESS,
-//     functionName: "totalSupply",
-//   });
-//   console.log("Total Supply:", result.data);
-//   return result.data-1;
-// }
 
 const MINDCHAIN_NFT_CID = "bafybeidpcbs5gklqwqgb22hsmb5vlyv242lvttlpenmapb72fxjrnsawde";
 
@@ -103,9 +92,9 @@ export async function mintCertificate(metadataCid: string, walletProvider: any, 
 
 export async function generateCertificate(form: CertificateFormData, address?: string, walletProvider?: any): Promise<MintResult> {
 
-  if (!walletProvider) throw new Error("Provider wallet manquant !");
-  if (!address) throw new Error("Adresse wallet manquante !");
-  if (!form.finalArtworkFile || !(form.finalArtworkFile instanceof File)) throw new Error("Fichier de l'œuvre finale manquant ou invalide !");
+  if (!walletProvider) throw new Error("[Certificat] Provider wallet manquant !");
+  if (!address) throw new Error("[Certificat] Adresse wallet manquante !");
+  if (!form.finalArtworkFile || !(form.finalArtworkFile instanceof File)) throw new Error("[Certificat] Fichier de l'œuvre finale manquant ou invalide !");
 
   const certificateId = uuidv4();
   const attributes = [];
@@ -133,7 +122,7 @@ export async function generateCertificate(form: CertificateFormData, address?: s
     const filename = `${certificateId}_${form.finalArtworkFile.name}`;
     fileCID = await uploadImageFile(form.finalArtworkFile, filename);
     if (!fileCID) {
-      throw new Error("Erreur lors de l’upload de l’image finale sur IPFS.");
+      throw new Error("[Certificat] Erreur lors de l’upload de l’image finale sur IPFS.");
     }
     form.finalArtworkFileCid = fileCID;
   }
@@ -183,8 +172,9 @@ export async function generateCertificate(form: CertificateFormData, address?: s
       };
 
     const uploadedJsonCID = await uploadJsonFile(certificate, certificateId);
+    console.log("[Certificat] Metadata JSON uploaded to IPFS with CID:", uploadedJsonCID);
     if (!uploadedJsonCID) {
-      throw new Error("Erreur lors de l’upload des métadonnées du certificat sur IPFS.");
+      throw new Error("[Certificat] Erreur lors de l’upload des métadonnées du certificat sur IPFS.");
     }
     const tx:MintResult = await mintCertificate(uploadedJsonCID!, walletProvider, address);
     if (tx.status === false) {
@@ -192,7 +182,7 @@ export async function generateCertificate(form: CertificateFormData, address?: s
       if(form.finalArtworkFileCid) {
         await deleteFile([form.finalArtworkFileCid, uploadedJsonCID]);
       }
-      throw new Error("Erreur lors du mint du certificat NFT.");  
+      throw new Error("[Certificat] Erreur lors du mint du certificat NFT.");  
     }
 
     return tx;
