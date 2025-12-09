@@ -59,10 +59,9 @@ export default function History(props: StudioTabProps) {
       );
 
       setNfts(items);
-      console.log("Fetched NFTs:", items);
 
     } catch (err) {
-      console.error("Error fetching NFTs:", err);
+      console.error("[History] Error fetching NFTs:", err);
     } finally {
       setLoading(false);
     }

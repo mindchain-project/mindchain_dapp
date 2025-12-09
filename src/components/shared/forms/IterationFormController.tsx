@@ -3,7 +3,7 @@ import { useFormContext, Controller } from "react-hook-form";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { X } from "lucide-react";
 import { Root as CollapsibleRoot, Trigger as CollapsibleTrigger, Content as CollapsibleContent } from "@radix-ui/react-collapsible";
-import { ChevronUpIcon, DoubleArrowDownIcon } from "@radix-ui/react-icons";
+import { ChevronUpIcon, DoubleArrowDownIcon, CrossCircledIcon } from "@radix-ui/react-icons";
 
 interface IterationFormControllerProps {
   index: number;
@@ -16,15 +16,49 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
   const [iterationPreview, setIterationPreview] = useState<File | null>(null);
   const hasSource = Boolean(sourcePreview);
   const [open, setOpen] = useState(false);
+
+  const Providers = {
+    "openai": "OpenAI",
+    "midjourney": "Midjourney",
+    "gemini": "Gemini",
+    "flux": "Flux",
+  };
+  const Models = {
+    "o1": "O1",
+    "gpt": "GPT",
+    "dall-e": "Dall-E",
+    "gemini": "Gemini",
+    "midjourney": "Midjourney",
+    "flux": "Flux",
+  };
+  const Modes = {
+    "text-to-image": "Text to Image",
+    "image-to-image": "Image to Image",
+    "in-painting": "In Painting",
+  };
+
+
+
   return (
     <>
     <CollapsibleRoot className="w-[80%]" open={open} onOpenChange={setOpen}>
-    <div className="flex items-center justify-between"> Itération { index === 0 && ("oeuvre finale *") } 
+    <div className="flex items-center justify-between"> Itération { index === 0 ? "oeuvre finale *" : "n°" + index } 
       <CollapsibleTrigger asChild>
+        <div className="flex items-center gap-2">
+          { index !== 0 && (
+            <button
+              type="button"
+              onClick={removeIteration}
+              className="bg-red-700 inline-flex size-[25px] items-center justify-center rounded-full m-2"
+            >
+              <CrossCircledIcon />
+            </button>)
+          }
 					<button className="inline-flex size-[25px] items-center justify-center rounded-full text-violet11 shadow-[0_2px_10px] shadow-blackA4 outline-none hover:bg-violet3 focus:shadow-[0_0_0_2px] focus:shadow-black data-[state=closed]:bg-blue data-[state=open]:bg-violet3">
 						{open ? <ChevronUpIcon /> : <DoubleArrowDownIcon />}
 					</button>
-				</CollapsibleTrigger>
+        </div>
+			</CollapsibleTrigger>
     </div>
     <CollapsibleContent>
       {/* PROMPT */}
@@ -66,10 +100,9 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
                 className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border py-2"
               >
                 <option value="">-- Choisir un modèle --</option>
-                <option value="openai">OpenAI</option>
-                <option value="midjourney">Midjourney</option>
-                <option value="gemini">Gemini</option>
-                <option value="flux">Flux</option>
+                {Object.entries(Models).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </FormControl>
             {errors.iterations && Array.isArray(errors.iterations) && errors.iterations[index]?.model && (
@@ -95,10 +128,9 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
                 className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border py-2"
               >
                 <option value="">-- Choisir un fournisseur --</option>
-                <option value="openai">OpenAI</option>
-                <option value="midjourney">Midjourney</option>
-                <option value="gemini">Gemini</option>
-                <option value="flux">Flux</option>
+                {Object.entries(Providers).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </FormControl>
             {errors.iterations && Array.isArray(errors.iterations) && errors.iterations[index]?.provider && (
@@ -124,9 +156,9 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
                 className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border py-2"
               >
                 <option value="">-- Choisir un mode --</option>
-                <option value="text-to-image">Text to Image</option>
-                <option value="image-to-image">Image to Image</option>
-                <option value="in-painting">In Painting</option>
+                {Object.entries(Modes).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </FormControl>
             {errors.iterations && Array.isArray(errors.iterations) && errors.iterations[index]?.mode && (
@@ -281,50 +313,8 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
         )}
       />
       )}
-      {/* IPFS PUBLISH */}
-      { index != 0 && (
-      <Controller
-        name={`iterations.${index}.ipfsPublish`}
-        control={control}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel style={{ marginTop: "10px" }}>Publication IPFS *</FormLabel>
-            <FormControl>
-              <div className="flex space-x-4">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    checked={field.value === true}
-                    onChange={() => field.onChange(true)}
-                  />
-                  <span className="ml-2 text-sm text-white">oui</span>
-                </label>
-
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    checked={field.value === false}
-                    onChange={() => field.onChange(false)}
-                  />
-                  <span className="ml-2 text-sm text-white">non</span>
-                </label>
-              </div>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-    )}
     </div>
     </CollapsibleContent>
-    { index !== 0 && (
-      <button
-        type="button"
-        onClick={removeIteration}
-        className="bg-red-700 mt-4 text-white px-3 py-1 rounded-md flex items-center"
-      >
-        <X size={14} />
-      </button>)
-    }
     </CollapsibleRoot>
 
     </>

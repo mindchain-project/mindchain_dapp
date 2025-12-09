@@ -21,7 +21,7 @@ export const wagmiAdapter = new WagmiAdapter({
   projectId,
   networks,
   transports: {
-    [sepolia.id]: http()
+    [sepolia.id]: http("https://api.etherscan.io/v2/api")
   }
 })
 // Export the Wagmi Config

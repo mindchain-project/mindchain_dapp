@@ -1,5 +1,4 @@
 'use client'
-
 // React Query
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
@@ -32,8 +31,13 @@ const modal = createAppKit({
   defaultNetwork: sepolia,
   metadata: metadata,
   features: {
-    analytics: true, // Optional - defaults to your Cloud configuration
-    socials: ['google'], // Optional - defaults to ['google', 'facebook', 'twitter']
+    connectMethodsOrder: ["wallet", "social"],
+    analytics: true,
+    swaps: false,
+    history: true,
+    socials: ['google'],
+    legalCheckbox: true,
+    email: false,
   },
 })
 

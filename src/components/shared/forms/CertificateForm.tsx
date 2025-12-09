@@ -9,6 +9,7 @@ import { generateCertificate } from '@/services/certificate';
 import { CertificateFormData } from '@/utils/interfaces';
 import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import { useEffect } from 'react';
+import { UpdateIcon } from "@radix-ui/react-icons";
 
 interface CertificateFormProps {
   onResult?: (result: any) => void;  // 🔥 typé !
@@ -160,7 +161,7 @@ const onSubmit = async (data: CertificateFormData) => {
 
           <button type="submit" className="btn-action margin-right-20">
             {methods.formState.isSubmitting && (
-              <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+              <UpdateIcon className="animate-spin [animation-duration:3s] inline-block ml-2 mb-1 border-t-transparent rounded-full h-10 w-10" />
             )}
             {methods.formState.isSubmitting ? "Certification en cours..." : "Certifier l'oeuvre"}
           </button>
