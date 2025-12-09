@@ -8,9 +8,13 @@ import ValidationFormController from '@/components/shared/forms/ValidationFormCo
 import { generateCertificate } from '@/services/certificate';
 import { CertificateFormData } from '@/utils/interfaces';
 import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
-import { uploadJsonFile, uploadImageFile } from '@/services/storage';
+import { useEffect } from 'react';
 
-const CertificateForm = () => {
+interface CertificateFormProps {
+  onResult?: (result: any) => void;  // 🔥 typé !
+}
+
+const CertificateForm = ({ onResult }: CertificateFormProps) => {
   const { address } = useAppKitAccount();
   const { walletProvider: walletProvider } = useAppKitProvider("eip155");
 
@@ -18,9 +22,20 @@ const CertificateForm = () => {
     defaultValues: {
       title: '',
       description: '',
-      uploadedFile: null,
-      uploadedFileUrl: null,
-      iterations: [],
+      finalArtworkFile: null,
+      finalArtworkFileCid: null,
+      finalArtworkFileIpfsPublish: true,
+      iterations: [{
+        prompt: "",
+        model: "",
+        provider: "",
+        mode: "",
+        sourceFile: null,
+        sourceFileDesc: "",
+        personalData: false,
+        ipfsPublish: true,
+        iterationImage: null,
+      }],
       legal: {
         authorshipConfirmation: false,
         thirdPartyRights: false,
@@ -53,38 +68,36 @@ const CertificateForm = () => {
     name: "iterations",
   });
 
-  // Utilitaires pour obtenir des métadonnées fichiers
-  const getFileMetadata = (file: File | null, role: string, url: string) => {
-    if (!file) return null;
-    return {
-      url: url,
-      type: file.type,
-      original_filename: file.name,
-      size: file.size,
-      role,
-    };
-  };
-
+  useEffect(() => {
+    if (iterationFields.length === 0) {
+      addIteration({
+        prompt: "",
+        model: "",
+        provider: "",
+        mode: "",
+        sourceFile: null,
+        sourceFileDesc: "",
+        personalData: false,
+        ipfsPublish: true,
+        iterationImage: null,
+      });
+    }
+  }, [iterationFields, addIteration]);
 
 const onSubmit = async (data: CertificateFormData) => {
-
-  let fileUrl: string | null = null;
-  // let uploadedFileMetadata = null;
-  if (data.uploadedFile) {
-    // Upload final artwork image to IPFS
-    fileUrl = await uploadImageFile(data.uploadedFile);
-    // uploadedFileMetadata = getFileMetadata(data.uploadedFile, "final_artwork", fileUrl);
-    // console.log("Final Artwork metadata:", uploadedFileMetadata);
+  if (!data.finalArtworkFile) {
+    alert("Veuillez télécharger le fichier de l'œuvre finale.");
+    return;
   }
-  data.uploadedFile = null;
-  data.uploadedFileUrl = fileUrl;
-
-  console.log("FORM FINAL SUBMIT:", data);
+  // Génération du certificat
   try {
-    await generateCertificate(data, address, walletProvider);
-    console.log("CERTIFICATE GENERATED");
+    const result = await generateCertificate(data, address, walletProvider);
+    console.log("CERTIFICATE GENERATED", result);
+    if (onResult) onResult(result);
   } catch (e) {
     console.error("CERTIFICATE ERROR:", e);
+    // Gérer l'erreur (affichage message, etc.)
+    alert("Erreur lors de la génération du certificat.");
   }
 };
 
@@ -105,29 +118,29 @@ const onSubmit = async (data: CertificateFormData) => {
             <IterationFormController
               key={field.id}
               index={index}
-              iterationNumber={index + 1}
-              removeIteration={() => removeIteration(index)}
+              removeIteration={index === 0 ? () => {} : () => removeIteration(index)}
             />
           ))}
 
           <button
             type="button"
-            className="btn-action px-6 mb-20"
-            onClick={() => addIteration({ 
-              prompt: "", 
-              model: "", 
-              provider: "", 
-              mode: "", 
-              sourceFile: null, 
-              sourceFileDesc: "", 
-              personalData: false, 
-              ipfsPublish: true, 
-              iterationImage: null 
-            } satisfies CertificateFormData["iterations"][number])}
+            className="btn-action px-6 mb-20 mt-10"
+            onClick={() => {
+              addIteration({
+                prompt: "",
+                model: "",
+                provider: "",
+                mode: "",
+                sourceFile: null,
+                sourceFileDesc: "",
+                personalData: false,
+                ipfsPublish: true,
+                iterationImage: null,
+              });
+            }}
           >
-            Ajouter une itération
+            Ajouter l&apos;itération précédente
           </button>
-
 
           <h4 className="mt-10 mb-2 block text-lg font-bold text-white before:content-['3._'] before:mr-2">
             Paramètres techniques généraux
@@ -144,8 +157,8 @@ const onSubmit = async (data: CertificateFormData) => {
           </h4>
           <ValidationFormController />
 
-          <button type="submit" className="btn-action">
-            Prévisualiser le certificat
+          <button type="submit" className="btn-action margin-right-20">
+            Certifier l&apos;oeuvre
           </button>
           <button
             type="button"
@@ -153,7 +166,6 @@ const onSubmit = async (data: CertificateFormData) => {
             onClick={() => {
               console.log("FORM RESET");
               methods.reset();
-              methods.setValue("uploadedFile", null);
             }}
           >Abandonner
           </button>

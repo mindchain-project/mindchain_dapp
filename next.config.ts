@@ -13,7 +13,11 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
-
+  experimental: {
+      serverActions: {
+        bodySizeLimit: '2mb',
+      },
+    },
   images: {
     remotePatterns: [
       {

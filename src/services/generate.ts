@@ -2,10 +2,6 @@
 // Models generation functions
 import { GoogleGenAI } from "@google/genai";
 import { InferenceClient } from "@huggingface/inference";
-// Storage functions
-import fs from "fs/promises";
-import {readFile, writeFile} from "fs/promises";
-import {readFileSync} from "fs";
 import { ImageToImageArgs, TextToImageArgs } from "@huggingface/inference";
 import { uploadImageFile } from "./storage";
 import { GenerativeResultData } from '@/utils/interfaces';
@@ -88,7 +84,7 @@ async function generateImageGoogle(prompt: string, file: File | null, uuidImage:
     // await writeFile(outputPath, imgBuffer);
     // console.log("Image saved to:", outputPath);
     const img_file = new File([imgBuffer], `generated_${uuidImage}.png`, { type: "image/png" });
-    const img_cid = await uploadImageFile(img_file);
+    const img_cid = await uploadImageFile(img_file, img_file.name);
     console.log("Image uploaded to IPFS with CID:", img_cid);
     // Récupération de la date de la réponse
     const headers = response.sdkHttpResponse?.headers ?? {};
@@ -156,7 +152,7 @@ export async function generateImageHuggingFace(prompt: string, file: File | null
     // await writeFile(outputPath, buffer);
     // console.log("Image saved to:", outputPath);
     const img_file = new File([buffer], `generated_${uuidImage}.png`, { type: "image/png" });
-    const img_cid = await uploadImageFile(img_file);
+    const img_cid = await uploadImageFile(img_file, img_file.name);
     console.log("Image uploaded to IPFS with CID:", img_cid);
     // Retour des informations de génération
     generationResult = {

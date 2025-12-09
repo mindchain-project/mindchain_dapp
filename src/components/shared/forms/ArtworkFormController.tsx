@@ -1,8 +1,40 @@
 import { useFormContext, Controller } from "react-hook-form";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
-import { Label } from "@radix-ui/react-label";
 import { X } from "lucide-react";
 import { useState } from "react";
+import Image from "next/image";
+
+// Fonction de compression d’image avant upload
+export async function compressImage(file: File, maxWidth = 1024, quality = 0.7): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      // Resize proportionnel
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          resolve(
+            new File([blob!], file.name, { type: "image/jpeg", lastModified: Date.now() })
+          );
+        },
+        "image/jpeg",
+        quality // compression entre 0 et 1
+      );
+    };
+  });
+}
+
 
 const ArtworkFormController = () => {
   const { control } = useFormContext();
@@ -50,10 +82,9 @@ const ArtworkFormController = () => {
           </FormItem>
         )}
       />
-
-        {/* FILE UPLOAD */}
+      {/* FILE UPLOAD */}
       <Controller
-        name="uploadedFile"
+        name="finalArtworkFile"
         control={control}
         rules={{ required: true }}
         render={({ field }) => (
@@ -61,32 +92,36 @@ const ArtworkFormController = () => {
             <FormLabel>Image finale *</FormLabel>
             <FormControl>
               <div className="relative">
+                <div className="flex items-center space-x-2">
                 {/* Hidden input */}
                 <input
-                  id="uploadedFile"
+                  id="finalArtworkFile"
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0] || null;
-                    field.onChange(file);
-
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setPreviewUrl(reader.result as string);
-                      };
-                      reader.readAsDataURL(file);
-                    } else {
+                    if (!file) {
                       setPreviewUrl(null);
+                      return;
                     }
+                    const compressed = await compressImage(file);
+                    console.log("Original:", file.size / 1024, "KB");
+                    console.log("Compressed:", compressed.size / 1024, "KB");
+                    field.onChange(compressed);
+                    // Preview of file
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setPreviewUrl(reader.result as string);
+                    };
+                    reader.readAsDataURL(compressed);
                   }}
                 />
 
                 {/* Label button */}
                 <label
-                  htmlFor="uploadedFile"
-                  className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 cursor-pointer"
+                  htmlFor="finalArtworkFile"
+                  className="w-[50%] text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 cursor-pointer"
                 >
                   {field.value ? field.value.name : "Importer l'image finale"}
                 </label>
@@ -104,13 +139,47 @@ const ArtworkFormController = () => {
                     <X size={14} />
                   </button>
                 )}
+                {/* IPFS PUBLISH */}
+                <Controller
+                  name="finalArtworkFileIpfsPublish"
+                  control={control}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel style={{ marginTop: "10px" }}>Publication IPFS *</FormLabel>
+                      <FormControl>
+                        <div className="flex space-x-4">
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              checked={field.value === true}
+                              onChange={() => field.onChange(true)}
+                            />
+                            <span className="ml-2 text-sm text-white">oui</span>
+                          </label>
 
-                {/* Preview */}
+                          <label className="inline-flex items-center">
+                            <input
+                              type="radio"
+                              checked={field.value === false}
+                              onChange={() => field.onChange(false)}
+                            />
+                            <span className="ml-2 text-sm text-white">non</span>
+                          </label>
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                </div>
+                {/* PREVIEW */}
                 {previewUrl && (
-                  <img
+                  <Image
                     src={previewUrl}
                     alt="preview"
                     className="mt-4 rounded-md w-64 h-auto border"
+                    width={256}
+                    height={256}
+                    unoptimized
                   />
                 )}
               </div>

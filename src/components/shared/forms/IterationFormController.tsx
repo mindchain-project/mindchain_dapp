@@ -3,28 +3,26 @@ import { useFormContext, Controller } from "react-hook-form";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { X } from "lucide-react";
 import { Root as CollapsibleRoot, Trigger as CollapsibleTrigger, Content as CollapsibleContent } from "@radix-ui/react-collapsible";
-import { Cross2Icon, RowSpacingIcon } from "@radix-ui/react-icons";
+import { ChevronUpIcon, DoubleArrowDownIcon } from "@radix-ui/react-icons";
 
 interface IterationFormControllerProps {
   index: number;
-  iterationNumber: number;
   removeIteration: () => void;
 }
 
-const IterationFormController = ({ index, iterationNumber, removeIteration }: IterationFormControllerProps) => {
+const IterationFormController = ({ index, removeIteration }: IterationFormControllerProps) => {
   const { register, control } = useFormContext();
   const [sourcePreview, setSourcePreview] = useState<File | null>(null);
   const [iterationPreview, setIterationPreview] = useState<File | null>(null);
   const hasSource = Boolean(sourcePreview);
   const [open, setOpen] = useState(false);
-
   return (
     <>
     <CollapsibleRoot className="w-[80%]" open={open} onOpenChange={setOpen}>
-    <div className="flex items-center justify-between"> Itération #{iterationNumber}
+    <div className="flex items-center justify-between"> Itération { index === 0 && ("oeuvre finale *") } 
       <CollapsibleTrigger asChild>
 					<button className="inline-flex size-[25px] items-center justify-center rounded-full text-violet11 shadow-[0_2px_10px] shadow-blackA4 outline-none hover:bg-violet3 focus:shadow-[0_0_0_2px] focus:shadow-black data-[state=closed]:bg-blue data-[state=open]:bg-violet3">
-						{open ? <Cross2Icon /> : <RowSpacingIcon />}
+						{open ? <ChevronUpIcon /> : <DoubleArrowDownIcon />}
 					</button>
 				</CollapsibleTrigger>
     </div>
@@ -197,7 +195,8 @@ const IterationFormController = ({ index, iterationNumber, removeIteration }: It
         control={control}
         render={({ field }) => (
           <FormItem>
-            <FormLabel style={{ marginTop: "10px" }}>Données personnelles *</FormLabel>
+            <div className="inline-flex items-center space-x-4 my-4">
+            <FormLabel>Données personnelles * :</FormLabel>
             <FormControl>
               <div className="flex space-x-4">
                 <label className="inline-flex items-center">
@@ -219,49 +218,19 @@ const IterationFormController = ({ index, iterationNumber, removeIteration }: It
                 </label>
               </div>
             </FormControl>
+            </div>
           </FormItem>
         )}
       />
-
-      {/* IPFS PUBLISH */}
-      <Controller
-        name={`iterations.${index}.ipfsPublish`}
-        control={control}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel style={{ marginTop: "10px" }}>Publication IPFS *</FormLabel>
-            <FormControl>
-              <div className="flex space-x-4">
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    checked={field.value === true}
-                    onChange={() => field.onChange(true)}
-                  />
-                  <span className="ml-2 text-sm text-white">oui</span>
-                </label>
-
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    checked={field.value === false}
-                    onChange={() => field.onChange(false)}
-                  />
-                  <span className="ml-2 text-sm text-white">non</span>
-                </label>
-              </div>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-
+      <div className="mb-4 flex w-full gap-4">
       {/* ITERATION RESULT IMAGE */}
+      { index != 0 && (
       <Controller
         name={`iterations.${index}.iterationImage`}
         control={control}
         render={({ field }) => (
           <FormItem>
-            <FormLabel style={{ marginTop: "10px" }}>Image résultat</FormLabel>
+            <FormLabel style={{ marginTop: "10px" }}>Image de l&apos;itération</FormLabel>
             <FormControl>
               <div className="relative">
                 <input
@@ -299,14 +268,51 @@ const IterationFormController = ({ index, iterationNumber, removeIteration }: It
           </FormItem>
         )}
       />
+      )}
+      {/* IPFS PUBLISH */}
+      { index != 0 && (
+      <Controller
+        name={`iterations.${index}.ipfsPublish`}
+        control={control}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel style={{ marginTop: "10px" }}>Publication IPFS *</FormLabel>
+            <FormControl>
+              <div className="flex space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    checked={field.value === true}
+                    onChange={() => field.onChange(true)}
+                  />
+                  <span className="ml-2 text-sm text-white">oui</span>
+                </label>
+
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    checked={field.value === false}
+                    onChange={() => field.onChange(false)}
+                  />
+                  <span className="ml-2 text-sm text-white">non</span>
+                </label>
+              </div>
+            </FormControl>
+          </FormItem>
+        )}
+      />
+    )}
+    </div>
     </CollapsibleContent>
-    <button
-      type="button"
-      onClick={removeIteration}
-      className="bg-red-700 mt-4 text-white px-3 py-1 rounded-md flex items-center"
-    >
-      <X size={14} />
-    </button>
+    { index !== 0 && (
+      <button
+        type="button"
+        onClick={removeIteration}
+        className="bg-red-700 mt-4 text-white px-3 py-1 rounded-md flex items-center"
+      >
+        <X size={14} />
+      </button>)
+    }
     </CollapsibleRoot>
 
     </>

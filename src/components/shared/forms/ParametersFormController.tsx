@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { FormItem, FormLabel, FormControl } from '@/components/ui/form';
-import { Label } from '@radix-ui/react-label';
 import { X } from "lucide-react";
 
 const ParametersFormController = () => {
@@ -58,7 +57,7 @@ const ParametersFormController = () => {
           <FormItem>
             <FormLabel>Logs techniques anonymisés</FormLabel>
             <FormControl>
-              <div className="relative">
+              <div className="relative w-full">
                 <input
                   id="logsFile"
                   type="file"
@@ -73,7 +72,7 @@ const ParametersFormController = () => {
 
                 <label
                   htmlFor="logsFile"
-                  className="w-full text-sm bg-gray-100 rounded-md border px-3 py-2 text-blue-700 cursor-pointer"
+                  className="w-[50%] text-sm bg-gray-100 rounded-md border px-3 py-2 text-blue-700 cursor-pointer"
                 >
                   {logsPreview ? logsPreview.name : "Importer le fichier de logs (.txt)"}
                 </label>

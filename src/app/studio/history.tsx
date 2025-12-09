@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
 import { BrowserProvider, Contract } from "ethers";
-import { retrieveFile } from "@/services/storage";
+import { loadJsonFile } from "@/services/storage";
 import { MINDCHAIN_NFT_ADDRESS, MINDCHAIN_NFT_ABI } from "@/contracts/MindchainNFT";
+import { StudioTabProps, NFTItem} from '@/utils/interfaces';
 import Image from "next/image";
-import {StudioTabProps} from '@/utils/interfaces';
 
-interface NFTItem {
-  tokenId: string;
-  metadata: any;
+function loadImageFile(uri: string) {
+  if (!uri) return "";
+  // Format ipfs://CID
+  if (uri.startsWith("ipfs://")) {
+    return `https://gateway.pinata.cloud/ipfs/${uri.slice(7)}`;
+  }
+  // Format CID brut
+  if (/^[a-zA-Z0-9]{46,}$/.test(uri)) {
+    return `https://gateway.pinata.cloud/ipfs/${uri}`;
+  }
+  return uri; 
 }
 
 export default function History(props: StudioTabProps) {
@@ -34,27 +42,25 @@ export default function History(props: StudioTabProps) {
       const provider = new BrowserProvider((window as any).ethereum);
       await provider.send("eth_requestAccounts", []);
       const contract = new Contract(MINDCHAIN_NFT_ADDRESS, MINDCHAIN_NFT_ABI[0].abi, provider);
-
+      // Récupérer le nombre de NFTs possédés par l'utilisateur
       const balance = await contract.balanceOf(address);
-      console.log("User balance:", balance.toString());
+      // Récupérer les détails de chaque NFT
+      const items = await Promise.all(
+        Array.from({ length: Number(balance) }).map(async (_, i) => {
+          const tokenId = await contract.tokenOfOwnerByIndex(address, i);
+          const uri = await contract.tokenURI(tokenId);              
+          const httpUrl = await loadJsonFile(uri);
+          const metadata = await fetch(httpUrl).then(r => r.json());
+          return {
+            tokenId: tokenId.toString(),
+            metadata,
+          };
+        })
+      );
 
-      const results: NFTItem[] = [];
+      setNfts(items);
+      console.log("Fetched NFTs:", items);
 
-      for (let i = 0; i < Number(balance); i++) {
-        const tokenId = await contract.tokenOfOwnerByIndex(address, i);
-
-        const uri = await contract.tokenURI(tokenId);
-        const ipfsData = await retrieveFile(uri);  // transforme ipfs:// en gateway http
-        const response = await fetch(ipfsData);
-        const json = await response.json();
-
-        results.push({
-          tokenId: tokenId.toString(),
-          metadata: json,
-        });
-      }
-
-      setNfts(results);
     } catch (err) {
       console.error("Error fetching NFTs:", err);
     } finally {
@@ -83,21 +89,21 @@ export default function History(props: StudioTabProps) {
           <thead>
             <tr>
               <th className="border px-4 py-2">Token ID</th>
-              <th className="border px-4 py-2">Nom</th>
-              <th className="border px-4 py-2">Description</th>
+              <th className="border px-4 py-2">Certificat</th>
+              <th className="border px-4 py-2">Nom de l&apos;oeuvre</th>
               <th className="border px-4 py-2">Image</th>
             </tr>
           </thead>
           <tbody>
             {nfts.map((nft) => (
               <tr key={nft.tokenId}>
-                <td className="border px-4 py-2">{nft.tokenId}</td>
+                <td className="border px-4 py-2 text-center">{nft.tokenId}</td>
+                <td className="border px-4 py-2">{nft.metadata.creation ? nft.metadata.creation.certificate_id : ''}</td>
                 <td className="border px-4 py-2">{nft.metadata.name}</td>
-                <td className="border px-4 py-2">{nft.metadata.description}</td>
-                <td className="border px-4 py-2">
+                <td className="border px-4 py-2 text-center">
                   {nft.metadata.image && (
                     <Image
-                      src={nft.metadata.image.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")}
+                      src={loadImageFile(nft.metadata.image)}
                       alt="NFT"
                       className="w-16 h-16 object-cover rounded"
                       width={64}

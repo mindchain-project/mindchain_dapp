@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import { useGenerativeContext } from './GenerativeContext';
 import { useEffect, useState } from 'react';
-import { retrieveFile } from '@/services/storage';
+
 
 const GenerativeResult = (props : { address: string }) => {
   // console.log("GenerativeResult props:", props.address);
@@ -16,7 +16,8 @@ const GenerativeResult = (props : { address: string }) => {
   useEffect(() => {
     const fetchImageUrl = async () => {
       if (promptResult?.cid) {
-        const url = await retrieveFile(promptResult.cid);
+        //const url = await retrieveFile(promptResult.cid);
+        const url = `https://gateway.pinata.cloud/ipfs/${promptResult.cid}`;
         setImageUrl(url);
       }
     };

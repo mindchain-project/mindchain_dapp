@@ -25,7 +25,7 @@ export interface GenerativeResultData {
   id: string;
   url: string;
   date: string;
-  cid?: string;
+  cid?: string | null;
 }
 
 export interface CertificateIteration {
@@ -44,8 +44,9 @@ export interface CertificateIteration {
 export interface CertificateFormData {
   title: string;
   description: string;
-  uploadedFile: File | null;
-  uploadedFileUrl: string | null;
+  finalArtworkFile: File | CertificateFileMetadata | null;
+  finalArtworkFileCid: string | null;
+  finalArtworkFileIpfsPublish: boolean;
 
   iterations: CertificateIteration[];
   
@@ -69,7 +70,27 @@ export interface CertificateFormData {
   };
 }
 
+export interface NFTItem {
+  tokenId: string;
+  metadata: any;
+}
+
+export interface MintResult {
+  status: boolean;
+  txHash: string;
+  tokenId: string | null;
+  metadataCid: string;
+}
+
+export interface CertificateFileMetadata {
+  url: string,
+  type: string,
+  original_filename: string,
+  size: number,
+  role: string,
+}
 
 export interface PinataUploadResponse extends UploadResponse {
-  cid: string;
+  cid: string,
+  is_duplicate: boolean,
 }

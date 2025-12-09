@@ -1,93 +1,72 @@
 'use server';
 import { PinataSDK } from "pinata";
-import { readFileSync }  from "node:fs";
-import { Blob } from "buffer";
-import { PinataUploadResponse } from "../utils/interfaces";
-import { v4 as uuidv4 } from "uuid";
 
+const MINDCHAIN_GROUP_ID = "91935178-cd37-480e-849b-255a49a334fc";
 
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT || "",
   pinataGateway: process.env.PINATA_GATEWAY || "",
 });
 
-export async function uploadTextFile() {
-  try {
-    // Upload a public text file
-    const txt_file = new File(["hello world!"], "hello.txt", { type: "text/plain" });
-    const txt_upload = await pinata.upload.public.file(txt_file);
-    console.log(txt_upload);
-    // Upload a public text file with metadata
-    const uploadWithMetadata = await pinata.upload.public
-    .file(txt_file)
-    .name("mindchain.txt")
-    .keyvalues({
-      env: "prod"
-    })
-    console.log(uploadWithMetadata);
-  } catch (error) {
-    console.log(error);
-  }
-}
-//await uploadTextFile();
+// Example to get a public signature (Need to upgrade plan)
+// const signature = await pinata.signatures.public.get(
+//   "0x9e7dd23be678960fd1a4873c35a87d1ee4f3d63e"
+// );
 
-export async function uploadImageFile(img_file: File) : Promise<string> {
-  
-  console.log("Uploading image file:", img_file);
-  const ipfsUrl = `https://${process.env.PINATA_GATEWAY}/ipfs/`
-  try {
-    const uploadedImage: PinataUploadResponse = await pinata.upload.public.file(img_file)
-    .name(img_file.name)
-    .keyvalues({
-      app: "mindchain_dapp"
-    })
-    .group("91935178-cd37-480e-849b-255a49a334fc");
-    return `${ipfsUrl}${uploadedImage.cid}`;
-  } catch (error) {
-    console.log("Error while uploading image file: " + error);
-    return `${ipfsUrl}/bafybeidpcbs5gklqwqgb22hsmb5vlyv242lvttlpenmapb72fxjrnsawde`; // cid de mindchain
-  }
+export async function deleteFile(files: Array<string>) {
+  for (const cid of files) {
+    try {
+      await pinata.files.public.delete([cid]);
+      console.log(`[IPFS] Files with CID ${cid} deleted successfully.`);
+    } catch (error) {
+      console.log("[IPFS] Error while deleting file with CID " + cid + " : " + error);
+    }
+}
 }
 
-
-export async function uploadJsonFile(json_content: object) {
+export async function uploadImageFile(file: File, filename: string) : Promise<string | null> {
+  console.log("[IPFS] Starting upload to Pinata...");
   try {
-    const filename = `${uuidv4()}.json`;
-    const uploadedJson = await pinata.upload.public.json(json_content)
+    const result = await pinata.upload.public.file(file)
     .name(filename)
-    .keyvalues({
-      app: "mindchain_dapp"
-    })
-    .group("91935178-cd37-480e-849b-255a49a334fc");
-    
-    return uploadedJson;
+    .group(MINDCHAIN_GROUP_ID);
+    const pinedImage = result as unknown as { is_duplicate: boolean; cid: string };
+    if (pinedImage.is_duplicate) {
+      alert("[IPFS] ⚠️ Fichier déjà existant sur IPFS/PINATA !");
+      return null;
+    }
+    return pinedImage.cid;
   } catch (error) {
-    console.log("Error while uploading JSON file: " + error);
+    console.log("[IPFS] Error while uploading image file: " + error);
     return null;
   }
 }
-//await uploadJsonFile(img_cid);
 
-
-export async function retrieveFile(cid = "") {
+export async function uploadJsonFile(json_content: object, filename?: string) : Promise<string | null> {
+  console.log("[IPFS] Starting upload to Pinata...");
   try {
-    // Get a public file using its CID
-    const public_image_cid = cid;
-    const public_data = await pinata.gateways.public.get(public_image_cid);
-    
-    // // Get a private file using its CID
-    // const private_image_cid = process.env.PRIVATE_IMAGE_CID || "";
-    // const private_data = await pinata.gateways.private.get(private_image_cid);
-    // console.log(private_data);
-    // Alternatively, get a gateway URL
-    // const url = await pinata.gateways.convert(image_cid)
-    // console.log(url)
+    const json_filename = `mindchain_certificate_${filename}.json`;
+    const uploadedJson = await pinata.upload.public.json(json_content)
+    .name(json_filename)
+    .group(MINDCHAIN_GROUP_ID);
+    return uploadedJson.cid;
   } catch (error) {
-    console.log("Error while retrieving file: " + error);
+    console.log("[IPFS] Error while uploading JSON file: " + error);
+    return null;
   }
-  return `https://gateway.pinata.cloud/ipfs/${cid}`;
-  //return `https://gateway.pinata.cloud/ipfs/bafybeicnxivqsgfcbyfilz2x7de4u6aez7eps4trs63aeoe4fdkkisdcjm`;
+}
+
+export async function loadJsonFile(uri: string) {
+  if (!uri) return "";
+  // Format ipfs://CID
+  if (uri.startsWith("ipfs://")) {
+    return `https://gateway.pinata.cloud/ipfs/${uri.slice(7)}`;
+  }
+  // Format CID brut
+  if (/^[a-zA-Z0-9]{46,}$/.test(uri)) {
+    return `https://gateway.pinata.cloud/ipfs/${uri}`;
+  }
+  return uri; 
 }
 
 
-//retrieveFile();

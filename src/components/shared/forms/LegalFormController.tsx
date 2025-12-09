@@ -82,16 +82,18 @@ const LegalFormController = () => {
         //rules={{ required: true }}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Type de licence *</FormLabel>
+            <div className="flex flex-row space-y-1 w-full">
+            <FormLabel className="mr-10">Type de licence *</FormLabel>
             <FormControl>
               <input
                 {...field}
                 value={field.value || ""}
                 onChange={(e) => field.onChange(e.target.value)}
                 placeholder="Type de licence du Certificate Token"
-                className="w-full text-sm bg-gray-100 rounded-md border px-3 py-2 text-blue-700"
+                className="w-[60%] text-sm bg-gray-100 rounded-md border px-3 py-2 text-blue-700"
               />
             </FormControl>
+          </div>
           </FormItem>
         )}
       />
