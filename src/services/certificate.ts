@@ -71,7 +71,13 @@ export async function generateCertificate(form: CertificateFormData, address?: s
   try {    
     // Construction des attributs du certificat
     form.iterations.forEach((iteration, index) => {
-      const idx = index; 
+      const idx = index;
+      let iterationImageData: CertificateFileMetadata | null = null;
+      if (index === 0 && form.finalArtworkFileOriginal instanceof File) {
+        iterationImageData = iteration.iterationImage instanceof File ? getFileMetadata(form.finalArtworkFileOriginal) : null;
+      } else {
+        iterationImageData = iteration.iterationImage instanceof File ? getFileMetadata(iteration.iterationImage) : null;
+    }
       const attribute_value = {
           index: idx,
           prompt: iteration.prompt.toLowerCase().trim(),
@@ -80,7 +86,7 @@ export async function generateCertificate(form: CertificateFormData, address?: s
           mode: iteration.mode.toLowerCase(),
           source_file_metadata: iteration.sourceFile instanceof File ? getFileMetadata(iteration.sourceFile) : null,
           source_file_description: iteration.sourceFileDesc?.toLowerCase().trim(),
-          iteration_image_metadata: iteration.iterationImage instanceof File ? getFileMetadata(iteration.iterationImage) : null,
+          iteration_image_metadata: iterationImageData,
           personalData: iteration.personalData,
         };
       attributes.push({

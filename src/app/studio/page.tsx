@@ -25,8 +25,6 @@ const Studio = () => {
       <NavigationStudioTabs 
         defaultTab={activeTab} 
         onChange={setActiveTab}
-        address={address || ""} 
-        walletProvider={walletProvider} 
       />
       <div className="pt-10 pb-10 w-full">
         {activeTab === "generation" && (

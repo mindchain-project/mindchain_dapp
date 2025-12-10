@@ -110,7 +110,7 @@ export async function getUserTokenIDs(address: string, walletProvider: any): Pro
     }
     try {
         // Récupérer le nombre de NFTs possédés par l'utilisateur
-        const tokens: number[] = await contract.getTokenIDsByOwner(address);
+        const tokens: number[] = await contract.getTokenIDsByAddress(address);
         // Récupérer les détails de chaque NFT
         const items = await Promise.all(
             tokens.map(async (tokenId: number) => {

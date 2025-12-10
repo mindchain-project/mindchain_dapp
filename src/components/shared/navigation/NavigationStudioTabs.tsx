@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { isUserAdmin } from "@/services/transaction";
 
 const tabs = [
   { key: "certification", label: "Certification" },
@@ -15,13 +14,9 @@ export type StudioTabKey = typeof tabs[number]["key"];
 export default function NavigationStudioTabs({
     defaultTab = "certification",
     onChange,
-    address,
-    walletProvider
   }: {
     defaultTab?: StudioTabKey;
     onChange?: (key: StudioTabKey) => void;
-    address: string;
-    walletProvider: any;
   }) {
 
   const [active, setActive] = useState<StudioTabKey>(defaultTab);
@@ -30,14 +25,6 @@ export default function NavigationStudioTabs({
     setActive(key);
     onChange?.(key);
   };
-
-  const renderAdminTab = async () => {
-    const isAdmin = await isUserAdmin(address, walletProvider);
-    if (isAdmin) {
-      tabs.push({ key: "admin", label: "Admin" });
-    }
-  };
-  renderAdminTab();
 
   return (
     <div className="navigation-studio-header">
