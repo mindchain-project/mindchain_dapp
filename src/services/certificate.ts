@@ -1,91 +1,44 @@
 import { v4 as uuidv4 } from "uuid";
 import { CertificateFormData, MintResult, CertificateFileMetadata } from "../utils/interfaces";
-import { uploadImageFile, uploadJsonFile, deleteFile } from "./storage";
-import { ethers } from "ethers";
-import { MINDCHAIN_NFT_ADDRESS, MINDCHAIN_NFT_ABI } from "../contracts/MindchainNFT";
+import { uploadImageFile, uploadJsonFile, deleteFile, loadJsonFile } from "./storage";
+import { generateMerkleTree } from "./validate";
+import { mintCertificateToken } from "./transaction";
+import { keccak256, toUtf8Bytes } from "ethers";
 
 const MINDCHAIN_NFT_CID = "bafybeidpcbs5gklqwqgb22hsmb5vlyv242lvttlpenmapb72fxjrnsawde";
 
-export async function getMindchainContract(walletProvider: any, userAddress: string) {
-  console.log("[Contract] Initialisation du provider…");
-  if (!walletProvider) throw new Error("❌ Provider Reown manquant !");
-  if (!userAddress) throw new Error("❌ Adresse user manquante !");
-  try {
-    const provider = new ethers.BrowserProvider(walletProvider);
-    console.log("[Contract] Récupération du signer…");
-    const signer = await provider.getSigner();
-    console.log("[Contract] Signer address :", await signer.getAddress());
-    const contract = new ethers.Contract(
-      MINDCHAIN_NFT_ADDRESS,
-      MINDCHAIN_NFT_ABI[0].abi,
-      signer
-    );
-    console.log("[Contract] Instance du contrat Mindchain NFT créée !");
-    return { contract, signer };
-  } catch (err) {
-    console.error("[Contract] Erreur lors de l'initialisation du contrat :", err);
-    return { contract: null, signer: null};
-  }
+// Fonction utilitaire pour générer les métadonnées d’un fichier
+const getFileMetadata = (file: File): CertificateFileMetadata => {
+  console.log("Generating file metadata for", file);
+  const certificateFile = {
+    type: file.type,
+    original_filename: file.name.toLowerCase().trim(),
+    size: file.size,
+  };
+  return certificateFile;
+};
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
-export async function mintCertificate(metadataCid: string, walletProvider: any, address: string) {
-
-  const { contract, signer } = await getMindchainContract(walletProvider, address);
-
-  const mintData: MintResult = {
-    status: false,
-    txHash: "",
-    tokenId: null,
-    metadataCid: ""
-  };
-
-  if (!contract || !signer) {
-    return mintData;
-  }
-  // 1. Transaction de mint
-  let tx;
+export async function loadJsonFileAsBase64(cid: string): Promise<string> {
+  const url = await loadJsonFile(cid);
   try {
-    console.log("[Mint] Envoi de la transaction mintMindchain() …");
-    tx = await contract.mintMindchain(address, metadataCid);
-    console.log("[Mint] Transaction envoyée, en attente…", tx.hash);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Fetch error for ${url}`);
+    const jsonData = await res.json();
+    const jsonString = JSON.stringify(jsonData);
+    const base64 = btoa(jsonString);
+    return base64;
   } catch (err) {
-    console.error("[Mint] Échec lors de l’envoi de la transaction :", err);
-    return mintData;
-  }
-
-  // 2. Attente du receipt
-  let receipt;
-  try {
-    receipt = await tx.wait();
-    console.log("[Mint] Transaction mintée !", receipt.hash);
-    mintData.status = true;
-  } catch (err) {
-    console.error("[Mint] Échec lors de la confirmation :", err);
-    return mintData;
-  }
-
-  // 3. Extraction de l’event
-  console.log("[Mint] Analyse des logs…");
-
-  const parsedEvent = receipt.logs
-    .map((log: any) => {
-      try {
-        return contract.interface.parseLog(log);
-      } catch {
-        return null;
-      }
-    })
-    .find((evt: any) => evt && evt.name === "MindchainMinted");
-
-  if (!parsedEvent) {
-    console.warn("[Mint] Impossible de trouver l’event MindchainMinted !");
-    return mintData;
-  } else {
-    mintData.status = true;
-    mintData.txHash = receipt.hash;
-    mintData.tokenId = parsedEvent?.args?.tokenId?.toString() ?? null;
-    mintData.metadataCid = metadataCid;
-    return mintData;
+    console.error("[StorageLoad] Error loading JSON file:", err);
+    return "";
   }
 }
 
@@ -97,62 +50,41 @@ export async function generateCertificate(form: CertificateFormData, address?: s
   if (!form.finalArtworkFile || !(form.finalArtworkFile instanceof File)) throw new Error("[Certificat] Fichier de l'œuvre finale manquant ou invalide !");
 
   const certificateId = uuidv4();
-  const attributes = [];
-  let fileCID: string | null = null;
+  const attributes: any[] = [];
+  let imageFileCID: string | null = null;
 
-  // Fonction utilitaire pour générer les métadonnées d’un fichier
-  const getFileMetadata = (file: File, role: string, cid: string): CertificateFileMetadata => {
-    const _url = "ipfs://" + cid;
-    const certificateFile = {
-      url: _url,
-      type: file.type,
-      original_filename: file.name,
-      size: file.size,
-      role,
-    };
-    return certificateFile;
-  };
   // Gestion du fichier de l’image finale
   if(form.finalArtworkFileIpfsPublish === false) {
     // Si l’utilisateur ne veut pas publier l’image finale sur IPFS, on utilise le CID par défaut
-    fileCID = MINDCHAIN_NFT_CID;
+    imageFileCID = MINDCHAIN_NFT_CID;
     // TODO hash localement le fichier pour vérification future ?
   } else {
     // Generation du CID de l’image finale avec upload sur IPFS
     const filename = `${certificateId}_${form.finalArtworkFile.name}`;
-    fileCID = await uploadImageFile(form.finalArtworkFile, filename);
-    if (!fileCID) {
+    imageFileCID = await uploadImageFile(form.finalArtworkFile, filename);
+    if (!imageFileCID) {
       throw new Error("[Certificat] Erreur lors de l’upload de l’image finale sur IPFS.");
     }
-    form.finalArtworkFileCid = fileCID;
+    form.finalArtworkFileCid = imageFileCID;
   }
-  try {
-    // Ajout des métadonnées du fichier de l’image finale
-    const finalArtWorkMetadata = getFileMetadata(form.finalArtworkFile, "final_artwork", fileCID);
-    attributes.push({
-      trait_type: "image_metadata",
-      value: finalArtWorkMetadata,
-    });
-    
+
+  try {    
     // Construction des attributs du certificat
     form.iterations.forEach((iteration, index) => {
-      const idx = index; // s'assurer que index est bien défini
-      // TODO ajouter gestion des fichiers sources et images d’itération, si upload IPFS = true
+      const idx = index; 
       const attribute_value = {
           index: idx,
-          prompt: iteration.prompt,
-          model: iteration.model,
-          provider: iteration.provider,
-          mode: iteration.mode,
-          source_file_cid: null, // TODO à implémenter
-          source_file_metadata: null, // TODO à implémenter
-          source_file_description: iteration.sourceFileDesc,
-          iteration_image_cid: index === 0 ? fileCID : null, // TODO à implémenter pour les itérations précédentes
-          iteration_image_metadata: index === 0 ? finalArtWorkMetadata : null, // TODO à implémenter pour les itérations précédentes
+          prompt: iteration.prompt.toLowerCase().trim(),
+          model: iteration.model.toLowerCase().trim(),
+          provider: iteration.provider.toLowerCase().trim(),
+          mode: iteration.mode.toLowerCase(),
+          source_file_metadata: iteration.sourceFile instanceof File ? getFileMetadata(iteration.sourceFile) : null,
+          source_file_description: iteration.sourceFileDesc?.toLowerCase().trim(),
+          iteration_image_metadata: iteration.iterationImage instanceof File ? getFileMetadata(iteration.iterationImage) : null,
           personalData: iteration.personalData,
         };
       attributes.push({
-        trait_type: index === 0 ? "image_final_iteration_0" : "image_previous_iteration_" + idx,
+        trait_type: index === 0 ? "final_image_iteration_0" : "previous_image_iteration_" + idx,
         value: attribute_value,
       });
     });
@@ -161,7 +93,7 @@ export async function generateCertificate(form: CertificateFormData, address?: s
     const certificate = {
       name: form.title,
       description: form.description,
-      image: !fileCID ? MINDCHAIN_NFT_CID : fileCID,
+      image: !imageFileCID ? MINDCHAIN_NFT_CID : imageFileCID,
       external_url:'',
       attributes: attributes,
       creation: {
@@ -170,13 +102,15 @@ export async function generateCertificate(form: CertificateFormData, address?: s
         creator_wallet: address || "unknown"
         }
       };
-
-    const uploadedJsonCID = await uploadJsonFile(certificate, certificateId);
+    // Upload des métadonnées du certificat sur IPFS
+    const uploadJsonFilename = `certificate_metadata_${certificateId}.json`;
+    const uploadedJsonCID = await uploadJsonFile(certificate, uploadJsonFilename);
     console.log("[Certificat] Metadata JSON uploaded to IPFS with CID:", uploadedJsonCID);
     if (!uploadedJsonCID) {
       throw new Error("[Certificat] Erreur lors de l’upload des métadonnées du certificat sur IPFS.");
     }
-    const tx:MintResult = await mintCertificate(uploadedJsonCID!, walletProvider, address);
+    // Mint du token NFT du certificat
+    const tx:MintResult = await mintCertificateToken(uploadedJsonCID!, walletProvider, address);
     if (tx.status === false) {
       // En cas d’erreur lors du mint, on supprime les fichiers uploadés sur IPFS (si applicable)
       if(form.finalArtworkFileCid) {
@@ -184,7 +118,24 @@ export async function generateCertificate(form: CertificateFormData, address?: s
       }
       throw new Error("[Certificat] Erreur lors du mint du certificat NFT.");  
     }
+    // Génération du Merkle Tree pour le token minté
+    if (tx.tokenId) {
+      if (form.finalArtworkFileOriginal instanceof File) {
+        const imageBase64 = await fileToBase64(form.finalArtworkFileOriginal);
+        const jsonBase64 = await loadJsonFileAsBase64(uploadedJsonCID);
+        const imageHash: string = keccak256(toUtf8Bytes(imageBase64));
+        const jsonHash: string = keccak256(toUtf8Bytes(jsonBase64));
+        const leafData: [string, string][] = [
+          ["image", imageHash],
+          ["data", jsonHash],
+        ];
+        // Tri des feuilles par ordre alphabétique des clés
+        leafData.sort((a, b) => a[0].localeCompare(b[0]));
+        const merkleTreeRoot = await generateMerkleTree(tx.tokenId, leafData);
+        console.log("MERKLE TREE GENERATED", merkleTreeRoot);
+      }
 
+  }
     return tx;
   } catch (err) {
     console.error("Erreur lors de la génération du certificat :", err);

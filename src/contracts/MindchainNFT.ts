@@ -1,4 +1,31 @@
-export const MINDCHAIN_NFT_ADDRESS = "0xF01b8eE4991c068319408F303E64Dbd91fcE76dE";
+import { ethers } from "ethers";
+
+export async function getMindchainContract(walletProvider: any): Promise<{ contract: ethers.Contract | null; signer: ethers.Signer | null }> {
+  
+  if (!walletProvider) throw new Error("❌ Provider Reown manquant !");
+  try {
+    // Création du provider
+    console.log("[Contract] Initialisation du provider…");
+    const provider = new ethers.BrowserProvider(walletProvider);
+    // Récupération du signataire
+    console.log("[Contract] Récupération du signataire…");
+    const signer = await provider.getSigner();
+    // Création de l'instance du contrat
+    console.log("[Contract] Initialisation du contrat Mindchain NFT…");
+    const contract = new ethers.Contract(
+      MINDCHAIN_NFT_ADDRESS,
+      MINDCHAIN_NFT_ABI[0].abi,
+      signer
+    );
+    console.log("[Contract] Instance du contrat Mindchain NFT créée !");
+    return { contract, signer };
+  } catch (err) {
+    console.error("[Contract] Erreur lors de l'initialisation du contrat :", err);
+    return { contract: null, signer: null};
+  }
+}
+
+export const MINDCHAIN_NFT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 export const MINDCHAIN_NFT_ABI = [{
   "_format": "hh3-artifact-1",
   "contractName": "MindchainNFT",

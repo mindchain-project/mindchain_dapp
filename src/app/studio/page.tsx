@@ -1,5 +1,5 @@
 'use client';
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import NavigationStudioTabs, { type StudioTabKey } from "@/components/shared/navigation/NavigationStudioTabs";
 import { useState } from "react";
 import History from './history';
@@ -9,6 +9,8 @@ import Generation from './generation';
 const Studio = () => {
   const { address, isConnected } = useAppKitAccount();
   const [activeTab, setActiveTab] = useState<StudioTabKey>("certification");
+  const { walletProvider: walletProvider } = useAppKitProvider("eip155");
+
   if (!isConnected) {
     return (
     <>
@@ -20,16 +22,29 @@ const Studio = () => {
   return (
     <>
       <h2 className='studio highlight'>Studio</h2>
-      <NavigationStudioTabs defaultTab={activeTab} onChange={setActiveTab} />
+      <NavigationStudioTabs 
+        defaultTab={activeTab} 
+        onChange={setActiveTab}
+        address={address || ""} 
+        walletProvider={walletProvider} 
+      />
       <div className="pt-10 pb-10 w-full">
         {activeTab === "generation" && (
-          <Generation address={address || ""} />
+          <Generation 
+          address={address || ""} 
+          walletProvider={walletProvider} 
+          />
         )}
         {activeTab === "certification" && (
-          <Certification address={address || ""} />
+          <Certification 
+          address={address || ""} 
+          walletProvider={walletProvider} />
         )}
         {activeTab === "history" && (
-          <History address={address || ""} />
+          <History 
+          address={address || ""} 
+          walletProvider={walletProvider} 
+          />
         )}
         {activeTab === "pricing" && (
           <section className="space-y-4 justify-self-center">

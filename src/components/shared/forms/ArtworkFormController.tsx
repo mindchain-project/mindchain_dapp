@@ -1,4 +1,4 @@
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller, set } from "react-hook-form";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { X } from "lucide-react";
 import { useState } from "react";
@@ -37,7 +37,7 @@ export async function compressImage(file: File, maxWidth = 1024, quality = 0.7):
 
 
 const ArtworkFormController = () => {
-  const { control, formState: { errors } } = useFormContext();
+  const { control, setValue, formState: { errors } } = useFormContext();
   const [filePreview, setFilePreview] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -111,6 +111,9 @@ const ArtworkFormController = () => {
                       setPreviewUrl(null);
                       return;
                     }
+                    // Save original file for merkle tree
+                    setValue("finalArtworkFileOriginal", file);
+                    // Compress image
                     const compressed = await compressImage(file);
                     console.log("Original:", file.size / 1024, "KB");
                     console.log("Compressed:", compressed.size / 1024, "KB");

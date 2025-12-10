@@ -42,12 +42,11 @@ export async function uploadImageFile(file: File, filename: string) : Promise<st
   }
 }
 
-export async function uploadJsonFile(json_content: object, filename?: string) : Promise<string | null> {
+export async function uploadJsonFile(content: object, filename: string) : Promise<string | null> {
   console.log("[IPFS] Starting upload to Pinata...");
   try {
-    const json_filename = `mindchain_certificate_${filename}.json`;
-    const uploadedJson = await pinata.upload.public.json(json_content)
-    .name(json_filename)
+    const uploadedJson = await pinata.upload.public.json(content)
+    .name(filename)
     .group(MINDCHAIN_GROUP_ID);
     return uploadedJson.cid;
   } catch (error) {

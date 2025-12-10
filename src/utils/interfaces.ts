@@ -3,6 +3,7 @@ import { UploadResponse } from "pinata";
 
 export interface StudioTabProps {
   address: string;
+  walletProvider: any;
 }
 
 export interface GenerativeContextProps {
@@ -47,6 +48,7 @@ export interface CertificateFormData {
   finalArtworkFile: File | CertificateFileMetadata | null;
   finalArtworkFileCid: string | null;
   finalArtworkFileIpfsPublish: boolean;
+  finalArtworkFileOriginal: File | CertificateFileMetadata | null;
 
   iterations: CertificateIteration[];
   
@@ -83,11 +85,9 @@ export interface MintResult {
 }
 
 export interface CertificateFileMetadata {
-  url: string,
   type: string,
   original_filename: string,
   size: number,
-  role: string,
 }
 
 export interface PinataUploadResponse extends UploadResponse {

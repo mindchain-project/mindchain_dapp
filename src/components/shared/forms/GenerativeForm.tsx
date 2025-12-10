@@ -34,7 +34,7 @@ const newIteration = async () => {
 }
 
 
-const GenerativeForm = (props : { address: string }) => {
+const GenerativeForm = (props: { address: string, walletProvider: any }) => {
   // console.log("GenerativeForm props:", props.address);
   // Extraction des valeurs et fonctions du contexte
   const { signature, handleSignMsg, promptRequest, setPromptRequest, promptResult, setPromptResult } = useGenerativeContext();

@@ -15,7 +15,11 @@ const Certification = (props: StudioTabProps) => {
 
       {/* Affichage du formulaire */}
       {!certificationResult && (
-        <CertificateForm onResult={(data) => setCertificationResult(data)}/>
+        <CertificateForm 
+        onResult={(data) => setCertificationResult(data)}
+        address={props.address}
+        walletProvider={props.walletProvider}
+        />
       )}
 
       {/* Affichage du résultat */}
@@ -40,7 +44,7 @@ const Certification = (props: StudioTabProps) => {
             className='btn-action px-6 mt-4'
             >
               Certifier une nouvelle oeuvre
-              </button>
+          </button>
 
         </div>
       )}
