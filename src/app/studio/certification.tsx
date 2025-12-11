@@ -5,6 +5,7 @@ import { MintResult } from '@/utils/interfaces';
 
 const Certification = (props: StudioTabProps) => {
 
+  //console.log("Rendering Certification component with props:", props);
   const [certificationResult, setCertificationResult] = useState<MintResult | null>(null);
 
   return (
@@ -17,8 +18,6 @@ const Certification = (props: StudioTabProps) => {
       {!certificationResult && (
         <CertificateForm 
         onResult={(data) => setCertificationResult(data)}
-        address={props.address}
-        walletProvider={props.walletProvider}
         />
       )}
 
@@ -35,8 +34,12 @@ const Certification = (props: StudioTabProps) => {
             <p><strong>Metadata CID :</strong> {certificationResult.metadataCid}</p>
           )}
 
+          {certificationResult.imageCid && (
+            <p><strong>Image CID :</strong> {certificationResult.imageCid}</p>
+          )}
+
           {certificationResult.tokenId && (
-            <p><strong>Image CID :</strong> {certificationResult.tokenId}</p>
+            <p><strong>Token ID :</strong> {certificationResult.tokenId}</p>
           )}
 
           <button 

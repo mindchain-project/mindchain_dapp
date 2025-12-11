@@ -1,9 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { CertificateFormData, MintResult, CertificateFileMetadata } from "../utils/interfaces";
-import { uploadImageFile, uploadJsonFile, deleteFile, loadJsonFile } from "./storage";
-import { generateMerkleTree } from "./validate";
-import { mintCertificateToken } from "./transaction";
-import { keccak256, toUtf8Bytes } from "ethers";
+import { uploadImageFile, uploadJsonFile, deleteFile } from "./storage";
+import { mintCertificationToken } from "./contract";
 
 const MINDCHAIN_NFT_CID = "bafybeidpcbs5gklqwqgb22hsmb5vlyv242lvttlpenmapb72fxjrnsawde";
 
@@ -17,30 +15,6 @@ const getFileMetadata = (file: File): CertificateFileMetadata => {
   };
   return certificateFile;
 };
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-export async function loadJsonFileAsBase64(cid: string): Promise<string> {
-  const url = await loadJsonFile(cid);
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Fetch error for ${url}`);
-    const jsonData = await res.json();
-    const jsonString = JSON.stringify(jsonData);
-    const base64 = btoa(jsonString);
-    return base64;
-  } catch (err) {
-    console.error("[StorageLoad] Error loading JSON file:", err);
-    return "";
-  }
-}
 
 
 export async function generateCertificate(form: CertificateFormData, address?: string, walletProvider?: any): Promise<MintResult> {
@@ -116,7 +90,7 @@ export async function generateCertificate(form: CertificateFormData, address?: s
       throw new Error("[Certificat] Erreur lors de l’upload des métadonnées du certificat sur IPFS.");
     }
     // Mint du token NFT du certificat
-    const tx:MintResult = await mintCertificateToken(uploadedJsonCID!, walletProvider, address);
+    const tx:MintResult = await mintCertificationToken(uploadedJsonCID!, walletProvider, address);
     if (tx.status === false) {
       // En cas d’erreur lors du mint, on supprime les fichiers uploadés sur IPFS (si applicable)
       if(form.finalArtworkFileCid) {
@@ -124,24 +98,6 @@ export async function generateCertificate(form: CertificateFormData, address?: s
       }
       throw new Error("[Certificat] Erreur lors du mint du certificat NFT.");  
     }
-    // Génération du Merkle Tree pour le token minté
-    if (tx.tokenId) {
-      if (form.finalArtworkFileOriginal instanceof File) {
-        const imageBase64 = await fileToBase64(form.finalArtworkFileOriginal);
-        const jsonBase64 = await loadJsonFileAsBase64(uploadedJsonCID);
-        const imageHash: string = keccak256(toUtf8Bytes(imageBase64));
-        const jsonHash: string = keccak256(toUtf8Bytes(jsonBase64));
-        const leafData: [string, string][] = [
-          ["image", imageHash],
-          ["data", jsonHash],
-        ];
-        // Tri des feuilles par ordre alphabétique des clés
-        leafData.sort((a, b) => a[0].localeCompare(b[0]));
-        const merkleTreeRoot = await generateMerkleTree(tx.tokenId, leafData);
-        console.log("MERKLE TREE GENERATED", merkleTreeRoot);
-      }
-
-  }
     return tx;
   } catch (err) {
     console.error("Erreur lors de la génération du certificat :", err);

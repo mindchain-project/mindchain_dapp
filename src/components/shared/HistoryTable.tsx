@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { StudioTabProps, NFTItem} from '@/utils/interfaces';
 import Image from "next/image";
 import { DownloadIcon } from "@radix-ui/react-icons";
-import { getUserTokenIDs } from "@/services/transaction";
+import { getUserTokenIDs } from "@/services/contract";
 
 function loadImageFile(uri: string) {
   if (!uri) return "";

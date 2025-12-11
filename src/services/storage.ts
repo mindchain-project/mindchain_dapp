@@ -13,7 +13,7 @@ const pinata = new PinataSDK({
 //   "0x9e7dd23be678960fd1a4873c35a87d1ee4f3d63e"
 // );
 
-export async function deleteFile(files: Array<string>) {
+export async function deleteFiles(files: Array<string>) {
   for (const cid of files) {
     try {
       await pinata.files.public.delete([cid]);
@@ -25,33 +25,41 @@ export async function deleteFile(files: Array<string>) {
 }
 
 export async function uploadImageFile(file: File, filename: string) : Promise<string | null> {
-  console.log("[IPFS] Starting upload to Pinata...");
+  console.log("[IPFS] Starting upload Image to Pinata...");
   try {
     const result = await pinata.upload.public.file(file)
     .name(filename)
     .group(MINDCHAIN_GROUP_ID);
     const pinedImage = result as unknown as { is_duplicate: boolean; cid: string };
     if (pinedImage.is_duplicate) {
-      alert("[IPFS] ⚠️ Fichier déjà existant sur IPFS/PINATA !");
-      return null;
+      // Impossible de certifier l'image si elle existe déjà sur IPFS
+      alert("[IPFS] ⚠️ Fichier déjà existant sur IPFS !");
+      throw new Error("File already exists on IPFS");
     }
     return pinedImage.cid;
   } catch (error) {
+    // L'erreur n'empêche pas le fonctionnement de l'application
     console.log("[IPFS] Error while uploading image file: " + error);
     return null;
   }
 }
 
-export async function uploadJsonFile(content: object, filename: string) : Promise<string | null> {
-  console.log("[IPFS] Starting upload to Pinata...");
+export async function uploadJsonFile(content: object, filename: string) : Promise<string> {
+  console.log("[IPFS] Starting upload Json file to Pinata...");
   try {
-    const uploadedJson = await pinata.upload.public.json(content)
+    const result = await pinata.upload.public.json(content)
     .name(filename)
     .group(MINDCHAIN_GROUP_ID);
-    return uploadedJson.cid;
+  const pinedJson = result as unknown as { is_duplicate: boolean; cid: string };
+  if (pinedJson.is_duplicate) {
+      // Impossible de poursuivre la certification
+      alert("[IPFS] ⚠️ Fichier déjà existant sur IPFS !");
+      throw new Error("File already exists on IPFS");
+    }
+    return pinedJson.cid;
   } catch (error) {
     console.log("[IPFS] Error while uploading JSON file: " + error);
-    return null;
+    throw error;
   }
 }
 

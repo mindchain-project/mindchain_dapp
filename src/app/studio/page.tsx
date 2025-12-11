@@ -34,9 +34,7 @@ const Studio = () => {
           />
         )}
         {activeTab === "certification" && (
-          <Certification 
-          address={address || ""} 
-          walletProvider={walletProvider} />
+          <Certification />
         )}
         {activeTab === "history" && (
           <History 

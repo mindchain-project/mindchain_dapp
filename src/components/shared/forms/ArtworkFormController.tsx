@@ -1,35 +1,56 @@
-import { useFormContext, Controller, set } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form";
 import { FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 // Fonction de compression d’image avant upload
-export async function compressImage(file: File, maxWidth = 1024, quality = 0.7): Promise<File> {
-  return new Promise((resolve) => {
+export async function compressImage(
+  file: File,
+  maxWidth = 1024,
+  quality = 0.7
+): Promise<File> {
+  return new Promise((resolve, reject) => {
     const img = new window.Image();
     img.src = URL.createObjectURL(file);
+
+    img.onerror = () => {
+      reject(new Error("Impossible de charger l’image."));
+    };
+
     img.onload = () => {
       const canvas = document.createElement("canvas");
       let width = img.width;
       let height = img.height;
-      // Resize proportionnel
+
       if (width > maxWidth) {
         height = (height * maxWidth) / width;
         width = maxWidth;
       }
+
       canvas.width = width;
       canvas.height = height;
+
       const ctx = canvas.getContext("2d");
-      ctx?.drawImage(img, 0, 0, width, height);
+      if (!ctx) return reject(new Error("Contexte canvas non disponible."));
+
+      ctx.drawImage(img, 0, 0, width, height);
+
       canvas.toBlob(
         (blob) => {
+          if (!blob) {
+            return reject(new Error("Échec de la compression de l’image."));
+          }
+
           resolve(
-            new File([blob!], file.name, { type: "image/jpeg", lastModified: Date.now() })
+            new File([blob], file.name, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            })
           );
         },
         "image/jpeg",
-        quality // compression entre 0 et 1
+        quality
       );
     };
   });
@@ -37,9 +58,14 @@ export async function compressImage(file: File, maxWidth = 1024, quality = 0.7):
 
 
 const ArtworkFormController = () => {
-  const { control, setValue, formState: { errors } } = useFormContext();
-  const [filePreview, setFilePreview] = useState<File | null>(null);
+  const { control, setValue, formState: { errors }, watch } = useFormContext();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const watchFinalArtworkFileIpfsPublish = watch("finalArtworkFileIpfsPublish");
+
+  useEffect(() => {
+    // Initialisation de la valeur par défaut pour la publication IPFS
+    setValue("finalArtworkFileIpfsPublish", true);
+  }, [setValue]);
 
   return (
     <>
@@ -90,12 +116,15 @@ const ArtworkFormController = () => {
       />
       {/* FILE UPLOAD */}
       <Controller
-        name="finalArtworkFile"
+        name="finalArtworkFile" // compressed file
         control={control}
         rules={{ required: "L'image finale est obligatoire." }}
         render={({ field }) => (
           <FormItem>
             <FormLabel>Image finale *</FormLabel>
+            <span className="text-xs text-muted-foreground italic"> 
+              Conservez l&apos;image originale, seule une version compressée sera publiée sur IPFS.
+            </span>
             <FormControl>
               <div className="relative">
                 <div className="flex items-center space-x-2">
@@ -111,19 +140,20 @@ const ArtworkFormController = () => {
                       setPreviewUrl(null);
                       return;
                     }
-                    // Save original file for merkle tree
-                    setValue("finalArtworkFileOriginal", file);
-                    // Compress image
-                    const compressed = await compressImage(file);
-                    console.log("Original:", file.size / 1024, "KB");
-                    console.log("Compressed:", compressed.size / 1024, "KB");
-                    field.onChange(compressed);
-                    // Preview of file
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setPreviewUrl(reader.result as string);
-                    };
-                    reader.readAsDataURL(compressed);
+                    try {
+                      setValue("finalArtworkFileOriginal", file); // original file
+                      const compressed = await compressImage(file);
+                      field.onChange(compressed);
+                      const reader = new FileReader();
+                      reader.onloadend = () => setPreviewUrl(reader.result as string);
+                      reader.readAsDataURL(compressed);
+
+                    } catch (error) {
+                      console.error("Erreur compression:", error);
+                      field.onChange(null);
+                      setPreviewUrl(null);
+                      alert("Impossible de prévisualiser cette image.");
+                    }
                   }}
                 />
 
@@ -141,6 +171,8 @@ const ArtworkFormController = () => {
                     onClick={() => {
                       field.onChange(null);
                       setPreviewUrl(null);
+                      setValue("finalArtworkFileIpfsPublish", false);
+                      alert("Vous devez importer une image avant de pouvoir la publier sur IPFS.");
                     }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-600 text-white p-1 rounded-full"
                   >
@@ -169,7 +201,14 @@ const ArtworkFormController = () => {
                             <input
                               type="radio"
                               checked={field.value === false}
-                              onChange={() => field.onChange(false)}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0] || null;
+                                if (!file) {
+                                  field.onChange(null);
+                                  setValue("finalArtworkFileIpfsPublish", false);  // force IPFS à false
+                                  return;
+                                }
+                            }}
                             />
                             <span className="ml-2 text-sm text-white">non</span>
                           </label>
@@ -178,7 +217,16 @@ const ArtworkFormController = () => {
                     </FormItem>
                   )}
                 />
+                {watchFinalArtworkFileIpfsPublish === false && (
+                  <div>
+                    <span className="text-xs text-red-400 italic">
+                      Cette image ne sera pas publiée sur IPFS.
+                      <br/>Une image par défaut sera affichée.
+                    </span>
+                  </div>
+                )}
                 </div>
+                { /* ERROR MESSAGE */}
                 {errors.finalArtworkFile?.message && typeof errors.finalArtworkFile.message === "string" && (
                   <p className="text-red-500 text-sm">{errors.finalArtworkFile.message}</p>
                 )}

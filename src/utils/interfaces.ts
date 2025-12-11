@@ -29,6 +29,11 @@ export interface GenerativeResultData {
   cid?: string | null;
 }
 
+// Certification interfaces
+export interface CertificateFormProps {
+  onResult?: (result: MintResult | null) => void;
+}
+
 export interface CertificateIteration {
   prompt: string;
   model: string;
@@ -41,14 +46,13 @@ export interface CertificateIteration {
   iterationImage: File | null;
 }
 
-
-export interface CertificateFormData {
+export interface CertificationFormData {
   title: string;
   description: string;
-  finalArtworkFile: File | CertificateFileMetadata | null;
+  finalArtworkFile: File | null; // Fichier compressé de l'œuvre finale
+  finalArtworkFileOriginal: File | null; // Fichier original de l'œuvre finale  
   finalArtworkFileCid: string | null;
   finalArtworkFileIpfsPublish: boolean;
-  finalArtworkFileOriginal: File | CertificateFileMetadata | null;
 
   iterations: CertificateIteration[];
   
@@ -76,17 +80,17 @@ export interface NFTItem {
   tokenId: string;
   metadata: any;
 }
-
+// Resultat du mint
 export interface MintResult {
-  status: boolean;
   txHash: string;
   tokenId: string | null;
   metadataCid: string;
+  imageCid: string;
 }
 
-export interface CertificateFileMetadata {
+export interface FileMetadata {
   type: string,
-  original_filename: string,
+  name: string,
   size: number,
 }
 
