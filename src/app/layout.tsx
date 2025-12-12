@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico',
   },
-  metadataBase: new URL('https://mindchain-dapp-p2v6pftdw-inceptiontech.vercel.app')
+  metadataBase: new URL('https://mindchain-dapp.vercel.app')
 };
 
 export default async function RootLayout({

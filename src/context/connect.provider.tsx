@@ -1,4 +1,5 @@
-'use client'
+'use client';
+
 // React Query
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
@@ -23,6 +24,7 @@ const metadata = {
   icons: ['/logo_brain_gradient.png'],
 }
 
+
 // Create the modal
 const modal = createAppKit({
   adapters: [wagmiAdapter],
@@ -33,12 +35,10 @@ const modal = createAppKit({
   features: {
     connectMethodsOrder: ["wallet", "social"],
     analytics: true,
-    swaps: false,
-    history: true,
     socials: ['google'],
+    swaps: false,
     legalCheckbox: true,
-    email: false,
-  },
+    },
 })
 
 function ConnectionProvider({ children, cookies }: { children: ReactNode; cookies: string | null }) {

@@ -1,8 +1,7 @@
 'use server';
 import { PinataSDK } from "pinata";
 
-const MINDCHAIN_GROUP_ID = "91935178-cd37-480e-849b-255a49a334fc";
-
+const MINDCHAIN_GROUP_ID = process.env.MINDCHAIN_GROUP_ID || "";
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT || "",
   pinataGateway: process.env.PINATA_GATEWAY || "",
@@ -63,6 +62,7 @@ export async function uploadJsonFile(content: object, filename: string) : Promis
   }
 }
 
+// TODO vérifier le type de retour
 export async function loadJsonFile(uri: string) {
   if (!uri) return "";
   // Format ipfs://CID

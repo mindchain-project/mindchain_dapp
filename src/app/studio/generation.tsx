@@ -1,6 +1,4 @@
-import {StudioTabProps} from '@/utils/interfaces';
-
-const Generation = (props: StudioTabProps) => {
+const Generation = () => {
 
   return (
      <section className="space-y-4 justify-self-center">

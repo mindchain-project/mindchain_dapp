@@ -17,13 +17,13 @@ import { CertificationFormData, FileMetadata, CertificateFormProps, MintResult }
 import { uploadImageFile, uploadJsonFile, deleteFiles } from '@/services/storage';
 
 import { useWriteContract, useWaitForTransactionReceipt, useWatchContractEvent , type BaseError  } from 'wagmi';
-import { MINDCHAIN_DEFAULT_ADDRESS, MINDCHAIN_DEFAULT_ABI } from "@/contracts/MindchainContract";
 import { useAppKitAccount } from '@reown/appkit/react';
+
+import { contractConfig, MindchainContractAddress } from "@/abi/MindchainContract";
+
 
 // Image Mindchain par défaut si l’utilisateur ne publie pas l’image finale sur IPFS
 const MINDCHAIN_NFT_CID = "bafybeidpcbs5gklqwqgb22hsmb5vlyv242lvttlpenmapb72fxjrnsawde";
-const contractAddress = MINDCHAIN_DEFAULT_ADDRESS
-const contractAbi = MINDCHAIN_DEFAULT_ABI;
 
 // Fonction utilitaire pour générer les métadonnées d’un fichier
 const getFileMetadata = (file: File): FileMetadata => {
@@ -145,7 +145,8 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
       creation: {
         certification_timestamp: Date.now(),
         certificate_id: certificateId
-      }
+      },
+      contract_address: MindchainContractAddress,
     };
 
     // Upload des métadonnées du certificat sur IPFS
@@ -245,8 +246,7 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
   }, [iterationFields, addIteration]);
 
   useWatchContractEvent({
-    address: contractAddress as `0x${string}`,
-    abi: contractAbi,
+    ...contractConfig,
     eventName: 'CertificationMinted',
     onLogs(logs) {
       console.log('CertificationMinted event logs:', logs);
@@ -265,8 +265,7 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
       txData = await getTransactionData(data);
       // Interaction avec le contrat pour le mint du NFT
       writeContract({
-        address: contractAddress as `0x${string}`,
-        abi: contractAbi,
+        ...contractConfig,
         functionName: 'mintCertification',
         args: [address, txData.jsonCID!],
       })

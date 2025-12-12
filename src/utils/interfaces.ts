@@ -1,10 +1,6 @@
 import { Dispatch, SetStateAction } from 'react';
 import { UploadResponse } from "pinata";
 
-export interface StudioTabProps {
-  address: string;
-  walletProvider: any;
-}
 
 export interface GenerativeContextProps {
   promptRequest: GenerativeFormData;
@@ -77,9 +73,18 @@ export interface CertificationFormData {
 }
 
 export interface NFTItem {
-  tokenId: string;
-  metadata: any;
+  tokenId: number;
+  metadata: {
+    name: string;
+    description: string;
+    image: string;
+    creation?: {
+      certificate_timestamp: string;
+      certificate_id: string;
+    };
+  };
 }
+
 // Resultat du mint
 export interface MintResult {
   txHash: string;

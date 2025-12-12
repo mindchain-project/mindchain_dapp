@@ -1,9 +1,8 @@
-import {StudioTabProps} from '@/utils/interfaces';
 import CertificateForm from '@/components/shared/forms/CertificateForm'
 import { useState } from 'react';
 import { MintResult } from '@/utils/interfaces';
 
-const Certification = (props: StudioTabProps) => {
+const Certification = () => {
 
   //console.log("Rendering Certification component with props:", props);
   const [certificationResult, setCertificationResult] = useState<MintResult | null>(null);

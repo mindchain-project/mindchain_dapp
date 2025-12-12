@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { StudioTabProps, NFTItem} from '@/utils/interfaces';
+import { NFTItem} from '@/utils/interfaces';
 import Image from "next/image";
-import { DownloadIcon } from "@radix-ui/react-icons";
-import { getUserTokenIDs } from "@/services/contract";
+import { DownloadIcon, TrashIcon } from "@radix-ui/react-icons";
+import { useAppKitAccount } from "@reown/appkit/react";
+import { readContract } from '@wagmi/core'
+import { useConfig } from 'wagmi'
+import { useReadContract } from 'wagmi'
+import { contractConfig } from "@/abi/MindchainContract";
 
-function loadImageFile(uri: string) {
+
+async function loadFile(uri: string) {
   if (!uri) return "";
   // Format ipfs://CID
   if (uri.startsWith("ipfs://")) {
@@ -17,73 +22,142 @@ function loadImageFile(uri: string) {
   return uri; 
 }
 
-const HistoryTable = (props: StudioTabProps) => {
+async function FetchNFTs(
+  tokenUris: string[],
+  tokenIds: number[]
+): Promise<NFTItem[]> {
+    const items = await Promise.all(
+    tokenUris.map(async (tokenUri, index) => {
+        const httpUrl = await loadFile(tokenUri);
+        const metadata = await fetch(httpUrl).then((r) => r.json());
 
-    const provider = props.walletProvider;
-    const [address, setAddress] = useState<string | null>(null);
+        // On résout aussi l’URL d’image ici pour que <Image> ait directement une URL HTTP
+        if (metadata.image) {
+            metadata.image = await loadFile(metadata.image);
+        }
+
+        return {
+            tokenId: tokenIds[index],
+            metadata,
+        };
+    })
+  );
+
+  return items;
+}
+
+
+const GetTokenId = async (config: any, tokenCount: bigint | undefined): Promise<number> => {
+    const tokenId  = await readContract(config , {
+        ...contractConfig,
+        functionName: "tokenByIndex",
+        args: [tokenCount ? tokenCount.toString() : 0],
+    });
+    return Number(tokenId);
+}
+
+const GetTokenUri = async (config: any, tokenId: number) => {
+    const tokenUri  = await readContract(config , {
+        ...contractConfig,
+        functionName: "tokenURI",
+        args: [tokenId],
+    });
+    console.log("Token URI inside ReadContract:", tokenUri);
+    return tokenUri as string;
+}
+
+
+const HistoryTable = () => {
+    const { address } = useAppKitAccount();
+    const wagmiConfig = useConfig();
     const [nfts, setNfts] = useState<NFTItem[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loadingNfts, setLoadingNfts] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    async function fetchUserNFTs() {
-        try {
-            if (!address) {
-                console.warn("[History] No user address yet, skipping fetch.");
-                return;
-            }
-            // Début du chargement
-            setLoading(true);
-            const tokenIds = await getUserTokenIDs(address, provider);
-            if (!tokenIds) {
+    const { data: tokenCount, isLoading: loadingTokenIds } = useReadContract({
+        ...contractConfig,
+        functionName: "balanceOf",
+        args: [address as `0x${string}`],
+        query: {
+        enabled: !!address && !!MindchainContractAddress,
+        },
+    });
+
+    useEffect(() => {
+        // Pas de wallet connecté ou pas d’adresse de contrat
+        if (!address || !MindchainContractAddress) return;
+        if (!tokenCount) {
+            setNfts([]);
+            return;
+        }
+        // Fetch des NFTs possédés par l’adresse
+        const fetchAll = async () => {
+            try {
+                setLoadingNfts(true);
+                setError(null);
+
+                const total = Number(tokenCount);
+                if (total === 0) {
                 setNfts([]);
-            } else {
-                setNfts(tokenIds);
+                return;
+                }
+                // 1. Récupérer tous les tokenIds
+                const tokenIds: number[] = [];
+                for (let i = 0; i < total; i++) {
+                    const tokenId = await GetTokenId(wagmiConfig, BigInt(i));
+                    tokenIds.push(tokenId);
+                }
+                // 2. Récupérer toutes les tokenURIs
+                const tokenUris: string[] = [];
+                for (const tokenId of tokenIds) {
+                    const tokenUri = await GetTokenUri(wagmiConfig, tokenId);
+                    tokenUris.push(tokenUri);
+                }
+                // 3. Fetch des métadatas IPFS
+                const items = await FetchNFTs(tokenUris, tokenIds);
+                setNfts(items);
+            } catch (err) {
+                console.error("[History] Error fetching NFTs:", err);
+                setError("Erreur lors du chargement des certificats.");
+                setNfts([]);
+            } finally {
+                setLoadingNfts(false);
             }
-        } catch (err) {
-        console.error("[History] Error fetching NFTs:", err);
-        } finally {
-            setLoading(false);
-        }
-    }
-    // ⬅ FIX 1 : mettre le setAddress dans un useEffect
-    useEffect(() => {
-        if (props.address) {
-        setAddress(props.address);
-        }
-    }, [props.address]);
-    // ⬅ FIX 2 : lancer fetchUserNFTs seulement quand address existe
-    useEffect(() => {
-        if (address) fetchUserNFTs();
-    }, [address]);
+        };
+        fetchAll();
+    }, [address, tokenCount, wagmiConfig]);
+
 
     return (
         <>
-        {loading && <p>Chargement…</p>}
+        {loadingTokenIds && <p>Chargement…</p>}
 
-        {!loading && nfts.length === 0 && (
+        {!loadingTokenIds && nfts.length === 0 && (
             <p>Aucun certificat trouvé pour cette adresse.</p>
         )}
 
         {nfts.length > 0 && (
-            <table className="w-full table-auto border-collapse border border-gray-300">
-            <thead>
+            <table className="w-full table-auto border-collapse">
+            <thead className="border">
                 <tr>
-                <th className="border px-4 py-2">Token ID</th>
-                <th className="border px-4 py-2">Certificat</th>
-                <th className="border px-4 py-2">Nom de l&apos;oeuvre</th>
-                <th className="border px-4 py-2">Image</th>
-                <th className="border px-4 py-2">Télécharger</th>
+                    <th className="px-4 py-2 border mx-4">N° Certificat</th>
+                    <th className="px-4 py-2 border mx-4">NFT ID</th>
+                    <th className="px-4 py-2 border mx-4">Nom de l&apos;oeuvre</th>
+                    <th className="px-4 py-2 border mx-4">Oeuvre</th>
+                    <th className="px-4 py-2 border mx-4">Télécharger</th>
+                    <th className="px-4 py-2 border mx-4">Supprimer</th>
                 </tr>
             </thead>
             <tbody>
                 {nfts.map((nft) => (
                 <tr key={nft.tokenId}>
-                    <td className="border px-4 py-2 text-center">{nft.tokenId}</td>
-                    <td className="border px-4 py-2">{nft.metadata.creation ? nft.metadata.creation.certificate_id : ''}</td>
-                    <td className="border px-4 py-2">{nft.metadata.name}</td>
-                    <td className="border px-4 py-2 text-center">
+                    <td className="border-b px-2 py-1">{nft.metadata.creation ? nft.metadata.creation.certificate_id : ''}</td>
+                    <td className="border-b px-2 py-1 text-center">{nft.tokenId}</td>
+                    <td className="border-b px-2 py-1">{nft.metadata.name}</td>
+                    <td className="border-b px-2 py-1 text-center">
                     {nft.metadata.image && (
                         <Image
-                        src={loadImageFile(nft.metadata.image)}
+                        src={nft.metadata.image}
                         alt="NFT"
                         className="w-16 h-16 object-cover rounded"
                         width={64}
@@ -91,10 +165,20 @@ const HistoryTable = (props: StudioTabProps) => {
                         />
                     )}
                     </td>
-                    <td className="">
-                    <button className="btn-action m-2 p-2 flex items-center space-x-2">
-                        <DownloadIcon className="h-5 w-5" />
-                    </button>
+                   <td className="border-b px-2 py-1">
+                        <div className="flex flex-row justify-center">
+                            <button className="btn-action m-2 p-2">
+                                <DownloadIcon className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </td>
+
+                    <td className="border-b px-2 py-1">
+                        <div className="flex flex-row justify-center">
+                            <button className="btn-action m-2 p-2">
+                                <TrashIcon className="h-5 w-5" />
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 ))}

@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       porto: false,
       'porto/internal': false,
     };
+    config.externals.push('pino-pretty', 'lokijs', 'encoding')
     return config;
   },
   experimental: {
