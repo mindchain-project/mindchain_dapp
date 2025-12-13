@@ -98,18 +98,18 @@ export interface CertificateForTransaction {
   name: string;
   description: string;
   image: string;
-  external_url: string;
   attributes: CertificateAttributes[];
   creation: {
-    certification_timestamp: string;
+    certification_timestamp: number;
     certificate_id: string;
   };
   contract_address: string;
   parameters: {
-    mainProvider: string; 
-    modelData: string;
-    logsFileCid: string | null;
+    main_provider: string; 
+    model_data: string;
+    logs_file: {metadata: FileMetadata, cid: string} | null;
   };
+  license: string;
 }
 
 

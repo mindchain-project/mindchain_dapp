@@ -38,7 +38,7 @@
     "ethers": "^6.16.0",
     "ipfs-only-hash": "^4.0.0",
     "lucide-react": "^0.555.0",
-    "next": "latest",
+    "next": "^16.0.10",
     "pinata": "^2.5.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",

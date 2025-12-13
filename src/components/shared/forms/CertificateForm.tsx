@@ -13,7 +13,14 @@ import ParametersFormController from '@/components/shared/forms/ParametersFormCo
 import LegalFormController from '@/components/shared/forms/LegalFormController';
 import ValidationFormController from '@/components/shared/forms/ValidationFormController';
 
-import { CertificationFormData, FileMetadata, CertificateFormProps, MintResult, iterationFileMetadata } from '@/utils/interfaces';
+import { 
+  CertificationFormData, 
+  FileMetadata, 
+  CertificateFormProps, 
+  MintResult, 
+  iterationFileMetadata, 
+  CertificateForTransaction 
+} from '@/utils/interfaces';
 import { uploadImageFile, uploadJsonFile, deleteFiles } from '@/services/storage';
 
 import { useWriteContract, useWaitForTransactionReceipt, useWatchContractEvent , type BaseError  } from 'wagmi';
@@ -67,13 +74,14 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
   // Refus publication IPFS (false) ou Image compressée invalide/manquante (null)
   if(form.finalArtworkFileIpfsPublish === false || !form.finalArtworkFile || !(form.finalArtworkFile instanceof File)) {
     // On utilise le CID par défaut
-    imageCID = MINDCHAIN_NFT_CID;
+    imageCID = "ipfs://" + MINDCHAIN_NFT_CID;
   } else {
     // Generation du CID de l’image finale
     try {
       // Nommage de l'image sur IPFS
       const filename = `${certificateId}.${originalFileMetadata.name}`;
-      imageCID = await uploadImageFile(form.finalArtworkFile, filename);
+      // standard de lien IPFS
+      imageCID = "ipfs://" + await uploadImageFile(form.finalArtworkFile, filename);
     } catch (err) {
       console.error("[Certificat] Erreur lors de l’upload de l’image finale sur IPFS :", err);
       throw err;
@@ -138,11 +146,10 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
       } : null,
     };
     // Construction de l’objet certificat
-    const certificate = {
+    const certificate : CertificateForTransaction = {
       name: form.title.toLowerCase().trim(),
       description: form.description.toLowerCase().trim(),
       image: imageCID,
-      external_url:'',
       attributes: attributes,
       parameters: parameters,
       license: form.legal.license,
