@@ -7,19 +7,28 @@ const tabs = [
   { key: "history", label: "Historique" },
   { key: "pricing", label: "Tarifs" },
   { key: "faq", label: "FAQ" },
+  { key: "member", label: "Membre" },
 ];
 
 export type StudioTabKey = typeof tabs[number]["key"]; 
 
+type NavigationStudioProps = {
+  defaultTab?: StudioTabKey;
+  onChange?: (key: StudioTabKey) => void;
+  isMember?: boolean;
+};
+
 export default function NavigationStudioTabs({
     defaultTab = "certification",
     onChange,
-  }: {
-    defaultTab?: StudioTabKey;
-    onChange?: (key: StudioTabKey) => void;
-  }) {
+    isMember,
+  }: NavigationStudioProps) {
 
   const [active, setActive] = useState<StudioTabKey>(defaultTab);
+
+  const visibleTabs = tabs.filter(
+    (t) => t.key !== "member" || isMember
+  );
 
   const handleClick = (key: StudioTabKey) => {
     setActive(key);
@@ -29,7 +38,7 @@ export default function NavigationStudioTabs({
   return (
     <div className="navigation-studio-header">
       <div className="navigation-studio-header-list flex flex-wrap items-center justify-center gap-4">
-        {tabs.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.key}
             type="button"

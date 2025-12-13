@@ -246,3 +246,32 @@ button.close-btn {
 .close-btn:hover {
     background-color: #dc2626; /* hover:bg-red-600 */
 }
+
+/* CGU styles */
+#cgu button {
+    padding: 10px;
+    margin: 10px;
+}
+#cgu h4 {
+    margin-top: 20px;
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+#cgu h5 {
+    margin-top: 10px;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+#cgu p, #cgu ul{
+    margin-top: 10px;
+    line-height: 1.6;
+}
+#cgu ul li {
+    list-style-type: disc;
+    margin-left: 20px;
+    margin-top: 5px;
+}
+#cgu ul ol {
+    margin-top: 10px;
+    line-height: 1.6;
+}

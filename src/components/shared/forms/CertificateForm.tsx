@@ -13,7 +13,7 @@ import ParametersFormController from '@/components/shared/forms/ParametersFormCo
 import LegalFormController from '@/components/shared/forms/LegalFormController';
 import ValidationFormController from '@/components/shared/forms/ValidationFormController';
 
-import { CertificationFormData, FileMetadata, CertificateFormProps, MintResult } from '@/utils/interfaces';
+import { CertificationFormData, FileMetadata, CertificateFormProps, MintResult, iterationFileMetadata } from '@/utils/interfaces';
 import { uploadImageFile, uploadJsonFile, deleteFiles } from '@/services/storage';
 
 import { useWriteContract, useWaitForTransactionReceipt, useWatchContractEvent , type BaseError  } from 'wagmi';
@@ -84,12 +84,6 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
     alert("Erreur lors de l’upload de l’image finale sur IPFS. Votre image ne sera pas publiée.");
     imageCID = await getCID(originalFile);
   }
-
-  interface iterationFileMetadata {
-    metadata :FileMetadata,
-    cid : string,
-    description: string | null,
-  }
   
   try {    
     // Construction des attributs du certificat
@@ -134,7 +128,15 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
         value: attribute_value,
       });
     };
-
+    //Construction des paramètres techniques généraux
+    const parameters = {
+      main_provider: form.parameters.mainProvider.toLowerCase().trim(),
+      model_data: form.parameters.modelData.toLowerCase().trim(),
+      logs_file: form.parameters.logsFile instanceof File ? {
+        metadata: getFileMetadata(form.parameters.logsFile),
+        cid: await getCID(form.parameters.logsFile),
+      } : null,
+    };
     // Construction de l’objet certificat
     const certificate = {
       name: form.title.toLowerCase().trim(),
@@ -142,6 +144,8 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
       image: imageCID,
       external_url:'',
       attributes: attributes,
+      parameters: parameters,
+      license: form.legal.license,
       creation: {
         certification_timestamp: Date.now(),
         certificate_id: certificateId
@@ -366,6 +370,7 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
             onClick={() => {
               console.log("FORM RESET");
               methods.reset();
+              window.scrollTo({ top: 200, behavior: "smooth" });
             }}
           >Abandonner
           </button>

@@ -6,18 +6,12 @@ import History from './history';
 import Certification from './certification';
 import Generation from './generation';
 import Member from "./member";
-import { MindchainContractABI } from "@/abi/MindchainContract";
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { readContract } from '@wagmi/core'
 import { useConfig } from 'wagmi'
+import { contractConfig } from "@/abi/MindchainContract";
 import whitelist  from "@/abi/whitelist.json";
 
-const MindchainContractAddress = process.env.NEXT_PUBLIC_MINDCHAIN_ADDRESS  as `0x${string}` || '';
-
-const contractConfig = {
-  abi: MindchainContractABI,
-  address: MindchainContractAddress,
-} as const
 
 // Fonction pour définir la racine de Merkle sur le contrat
 const SetMerkleRoot = async (config: any, _merkleRoot: `0x${string}`) => {
@@ -40,7 +34,7 @@ const IsAddressMember = async (config: any, address: `0x${string}`, proof: strin
   try {
     const member = await readContract(config , {
         ...contractConfig,
-        functionName: "isWhitelisted",
+        functionName: "isMember",
         args: [address, proof],
     });
     return member as boolean;
@@ -53,7 +47,6 @@ const IsAddressMember = async (config: any, address: `0x${string}`, proof: strin
 // Fonction pour obtenir la liste blanche d’adresses depuis les variables d’environnement
 function GetWhitelistedAddresses(): any[] {
   const whitelisted = whitelist ? whitelist.members : [];
-  console.log('Liste blanche d\'adresses :', whitelisted);
   return whitelisted;
 }
 
@@ -75,22 +68,22 @@ const Studio = () => {
 
   useEffect(() => {
     if (!isConnected || !address) return;
-
+    if (!isMember && activeTab === "member") {
+        setActiveTab("certification");
+      }
     try {
       const tree = StandardMerkleTree.of(members, ["address"]);
       const root = tree.root;
       console.log("Merkle Root :", root);
-
       let proof: string[] = [];
 
       // Trouver l'index de l'adresse connectée
       for (const [i, v] of tree.entries()) {
-        if (v[0].toLowerCase() === address.toLowerCase()) {
+        if (address && (v[0].toLowerCase() === address.toLowerCase() || v[0] === address)) {
           proof = tree.getProof(i);
           break;
         }
       }
-
       setMerkleProof(proof);
 
       // Vérification côté smart contract
@@ -103,7 +96,6 @@ const Studio = () => {
           );
           setIsMember(ok);
         };
-
         checkMember();
       } else {
         setIsMember(false);
@@ -112,7 +104,7 @@ const Studio = () => {
       console.error(err);
       setMerkleRootError("Erreur lors de la génération de la preuve de Merkle.");
     }
-  }, [isConnected, address, members, config]);
+  }, [isConnected, address, members, config, isMember, activeTab]);
 
   if (!isConnected) {
     return (
@@ -128,6 +120,7 @@ const Studio = () => {
       <NavigationStudioTabs 
         defaultTab={activeTab} 
         onChange={setActiveTab}
+        isMember={isMember}
       />
       <div className="pt-10 pb-10 w-full">
         {activeTab === "generation" && (
@@ -151,7 +144,7 @@ const Studio = () => {
             <p className="text-muted-foreground">Réponses aux questions fréquentes.</p>
           </section>
         )}
-        { isMember && (
+        {isMember && activeTab === "member" && (
           <Member />
         )}
       </div>

@@ -15,7 +15,7 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
   const [sourcePreview, setSourcePreview] = useState<File | null>(null);
   const [iterationPreview, setIterationPreview] = useState<File | null>(null);
   const hasSource = Boolean(sourcePreview);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(index === 0);
 
   const Providers = {
     "openai": "OpenAI",
@@ -54,7 +54,7 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
               <CrossCircledIcon />
             </button>)
           }
-					<button className="inline-flex size-[25px] items-center justify-center rounded-full text-violet11 shadow-[0_2px_10px] shadow-blackA4 outline-none hover:bg-violet3 focus:shadow-[0_0_0_2px] focus:shadow-black data-[state=closed]:bg-blue data-[state=open]:bg-violet3">
+					<button type="button" className="inline-flex size-[25px] items-center justify-center rounded-full text-violet11 shadow-[0_2px_10px] shadow-blackA4 outline-none hover:bg-violet3 focus:shadow-[0_0_0_2px] focus:shadow-black data-[state=closed]:bg-blue data-[state=open]:bg-violet3">
 						{open ? <ChevronUpIcon /> : <DoubleArrowDownIcon />}
 					</button>
         </div>

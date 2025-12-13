@@ -2,6 +2,8 @@ import { Dispatch, SetStateAction } from 'react';
 import { UploadResponse } from "pinata";
 
 
+/* ---------   INTERFACES GENERATION  ------------------*/
+
 export interface GenerativeContextProps {
   promptRequest: GenerativeFormData;
   promptResult: GenerativeResultData;
@@ -25,7 +27,9 @@ export interface GenerativeResultData {
   cid?: string | null;
 }
 
-// Certification interfaces
+
+/* ---------   INTERFACES CERTIFICATION  ------------------*/
+
 export interface CertificateFormProps {
   onResult?: (result: MintResult | null) => void;
 }
@@ -72,14 +76,53 @@ export interface CertificationFormData {
   };
 }
 
+
+export interface CertificateAttributes {
+  trait_type: string;
+  value: CertificateIteration[];
+}
+
+export interface FileMetadata {
+  type: string,
+  name: string,
+  size: number,
+}
+
+export interface iterationFileMetadata {
+  metadata :FileMetadata,
+  cid : string,
+  description: string | null,
+}
+
+export interface CertificateForTransaction {
+  name: string;
+  description: string;
+  image: string;
+  external_url: string;
+  attributes: CertificateAttributes[];
+  creation: {
+    certification_timestamp: string;
+    certificate_id: string;
+  };
+  contract_address: string;
+  parameters: {
+    mainProvider: string; 
+    modelData: string;
+    logsFileCid: string | null;
+  };
+}
+
+
+/* ---------   INTERFACES RESULTATS  ------------------*/
+
 export interface NFTItem {
+  uri: string;
   tokenId: number;
   metadata: {
     name: string;
-    description: string;
     image: string;
     creation?: {
-      certificate_timestamp: string;
+      timestamp: number;
       certificate_id: string;
     };
   };
@@ -93,11 +136,8 @@ export interface MintResult {
   imageCid: string;
 }
 
-export interface FileMetadata {
-  type: string,
-  name: string,
-  size: number,
-}
+
+/* ---------   INTERFACES STOCKAGE  ------------------*/
 
 export interface PinataUploadResponse extends UploadResponse {
   cid: string,
