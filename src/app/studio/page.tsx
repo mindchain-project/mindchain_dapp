@@ -26,7 +26,7 @@ const GetMerkleRoot = async (config: Config) => {
 
 const IsAddressMember = async (config: Config, address: `0x${string}`, proof: string[]) : Promise<boolean> => {
   try {
-    console.log("Checking if address is member:", address, proof);
+    //console.log("Checking if address is member:", address, proof);
     const member = await readContract(config , {
         ...contractConfig,
         functionName: "isMember",
