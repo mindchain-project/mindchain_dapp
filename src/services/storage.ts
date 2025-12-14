@@ -39,11 +39,11 @@ export async function uploadImageFile(file: File, filename: string) : Promise<st
     .name(filename)
     .group(MINDCHAIN_GROUP_ID);
     const pinedImage = result as unknown as { is_duplicate: boolean; cid: string };
-    if (pinedImage.is_duplicate) {
-      // Impossible de certifier l'image si elle existe déjà sur IPFS
-      alert("[IPFS] Fichier déjà existant sur IPFS !");
-      throw new Error("[IPFS] File already exists on IPFS");
-    }
+    // if (pinedImage.is_duplicate) {
+    //   // Impossible de certifier l'image si elle existe déjà sur IPFS
+    //   alert("[IPFS] Fichier déjà existant sur IPFS !");
+    //   throw new Error("[IPFS] File already exists on IPFS");
+    // }
     return pinedImage.cid;
   } catch (error) {
     // L'erreur n'empêche pas le fonctionnement de l'application
