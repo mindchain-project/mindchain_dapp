@@ -289,7 +289,7 @@ const IterationFormController = ({ index, removeIteration }: IterationFormContro
                   }}
                 />
                 <label
-                  htmlFor="iterationImage"
+                  htmlFor={`iterationImage${index}`}
                   className="w-full text-sm bg-gray-100 text-blue-700 rounded-md border px-3 py-2 cursor-pointer"
                 >
                   {iterationPreview ? iterationPreview.name : "Importer l'image résultat"}
