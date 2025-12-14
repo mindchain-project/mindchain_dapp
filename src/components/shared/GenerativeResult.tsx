@@ -4,8 +4,8 @@ import { useGenerativeContext } from './GenerativeContext';
 import { useEffect, useState } from 'react';
 
 
-const GenerativeResult = (props : { address: string }) => {
-  // console.log("GenerativeResult props:", props.address);
+const GenerativeResult = () => {
+
   const { promptRequest, setPromptRequest, promptResult, setPromptResult } = useGenerativeContext();
   const isResultValid = promptResult && promptResult.cid !== '';
 
@@ -28,36 +28,37 @@ const GenerativeResult = (props : { address: string }) => {
 
   // Génération et téléchargement du certificat
   const generateCertificate = async () => {
-    const certificateData = {
-      "title": "Asset Metadata",
-      "type": "object",
-      "properties": {
-          "name": {
-              "type": "string",
-              "description": promptRequest?.title
-          },
-          "description": {
-              "type": "string",
-              "description": "Image generated with AI"
-          },
-          "image": {
-              "type": "string",
-              "description": promptResult?.cid
-          },
-          "prompt": {
-              "type": "string",
-              "description": promptRequest?.prompt
-          },
-          "model": {
-              "type": "string",
-              "description": promptRequest?.model
-          },
-          "date": {
-              "type": "string",
-              "description": promptResult?.date
-          }
-      }
-    };
+    console.log("Génération du certificat pour le résultat:", promptResult);
+    // const certificateData = {
+    //   "title": "Asset Metadata",
+    //   "type": "object",
+    //   "properties": {
+    //       "name": {
+    //           "type": "string",
+    //           "description": promptRequest?.title
+    //       },
+    //       "description": {
+    //           "type": "string",
+    //           "description": "Image generated with AI"
+    //       },
+    //       "image": {
+    //           "type": "string",
+    //           "description": promptResult?.cid
+    //       },
+    //       "prompt": {
+    //           "type": "string",
+    //           "description": promptRequest?.prompt
+    //       },
+    //       "model": {
+    //           "type": "string",
+    //           "description": promptRequest?.model
+    //       },
+    //       "date": {
+    //           "type": "string",
+    //           "description": promptResult?.date
+    //       }
+    //   }
+    // };
     // // Appel de la fonction server-side pour générer et télécharger le certificat
     // const certifiedImage = await certificateImage(certificateData);
     // const blob = new Blob(

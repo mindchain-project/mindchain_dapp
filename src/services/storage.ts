@@ -13,14 +13,23 @@ const pinata = new PinataSDK({
 // );
 
 export async function deleteFiles(files: Array<string>) {
-  for (const cid of files) {
+  for (const file of files) {
     try {
-      await pinata.files.public.delete([cid]);
-      console.log(`[IPFS] Files with CID ${cid} deleted successfully.`);
+      const result = await pinata.files.public.delete([file]);
+      if(result[0].status === 'HTTP error') {
+        const cid_response = await pinata.gateways.public.get(file);
+        if (cid_response.data === null) {
+          console.log(`[IPFS] File with CID ${file} does not exist.`);
+          continue;
+        }
+        throw new Error("[IPFS] Failed to delete file with CID " + file);
+      } else {
+        console.log(`[IPFS] Files with CID ${file} deleted successfully.`);
+      }
     } catch (error) {
-      console.log("[IPFS] Error while deleting file with CID " + cid + " : " + error);
+      console.log("[IPFS] Error while deleting file with CID " + file + " : " + error);
     }
-}
+  }
 }
 
 export async function uploadImageFile(file: File, filename: string) : Promise<string | null> {
@@ -32,8 +41,8 @@ export async function uploadImageFile(file: File, filename: string) : Promise<st
     const pinedImage = result as unknown as { is_duplicate: boolean; cid: string };
     if (pinedImage.is_duplicate) {
       // Impossible de certifier l'image si elle existe déjà sur IPFS
-      alert("[IPFS] ⚠️ Fichier déjà existant sur IPFS !");
-      throw new Error("File already exists on IPFS");
+      alert("[IPFS] Fichier déjà existant sur IPFS !");
+      throw new Error("[IPFS] File already exists on IPFS");
     }
     return pinedImage.cid;
   } catch (error) {
@@ -52,7 +61,7 @@ export async function uploadJsonFile(content: object, filename: string) : Promis
   const pinedJson = result as unknown as { is_duplicate: boolean; cid: string };
   if (pinedJson.is_duplicate) {
       // Impossible de poursuivre la certification
-      alert("[IPFS] ⚠️ Fichier déjà existant sur IPFS !");
+      alert("[IPFS] Fichier déjà existant sur IPFS !");
       throw new Error("File already exists on IPFS");
     }
     return pinedJson.cid;
@@ -63,10 +72,10 @@ export async function uploadJsonFile(content: object, filename: string) : Promis
 }
 
 // TODO vérifier le type de retour
-export async function loadJsonFile(uri: string) {
+export async function resolveURI(uri: string) {
   if (!uri) return "";
   // Format ipfs://CID
-  if (uri.startsWith("ipfs://")) {
+  if (uri.startsWith("ipfs://") || uri.startsWith("ipfs/")) {
     return `https://gateway.pinata.cloud/ipfs/${uri.slice(7)}`;
   }
   // Format CID brut

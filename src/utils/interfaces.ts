@@ -11,6 +11,7 @@ export interface GenerativeContextProps {
   handleSignMsg: (msg: string) => Promise<string | undefined>;
   setPromptRequest: Dispatch<SetStateAction<GenerativeFormData>>;
   setPromptResult: Dispatch<SetStateAction<GenerativeResultData>>;
+  reset: () => void;
 }
 
 export interface GenerativeFormData {
@@ -122,7 +123,7 @@ export interface NFTItem {
     name: string;
     image: string;
     creation?: {
-      timestamp: number;
+      certification_timestamp: number;
       certificate_id: string;
     };
   };
@@ -130,7 +131,7 @@ export interface NFTItem {
 
 // Resultat du mint
 export interface MintResult {
-  txHash: string;
+  txHash: string | null;
   tokenId: string | null;
   metadataCid: string;
   imageCid: string;

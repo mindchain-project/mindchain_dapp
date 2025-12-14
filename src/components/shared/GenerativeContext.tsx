@@ -86,6 +86,7 @@ export default function GenerativeProvider({ children }: { children: React.React
         setPromptRequest,
         promptResult,
         setPromptResult,
+        reset
       }}
     >
       {children}

@@ -1,6 +1,8 @@
 import CertificateForm from '@/components/shared/forms/CertificateForm'
 import { useState } from 'react';
 import { MintResult } from '@/utils/interfaces';
+import Link from 'next/link';
+import { resolveURI } from "@/services/storage";
 
 const Certification = () => {
 
@@ -26,19 +28,31 @@ const Certification = () => {
           <h4 className="font-bold mb-2">Félicitations ! Votre certification est on-chain ! 🎉</h4>
 
           {certificationResult.txHash && (
-            <p><strong>Transaction :</strong> {certificationResult.txHash}</p>
+            <p><strong>Transaction : </strong> 
+            <Link href={`https://sepolia.etherscan.io/tx/${certificationResult.txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              >{certificationResult.txHash}</Link></p>
           )}
 
           {certificationResult.metadataCid && (
-            <p><strong>Metadata CID :</strong> {certificationResult.metadataCid}</p>
+            <p><strong>Metadata CID : </strong> 
+            <Link href={`https://gateway.pinata.cloud/ipfs/${certificationResult.metadataCid.slice(7)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              >{certificationResult.metadataCid}</Link></p>
           )}
 
           {certificationResult.imageCid && (
-            <p><strong>Image CID :</strong> {certificationResult.imageCid}</p>
+            <p><strong>Image CID : </strong>
+            <Link href={`https://gateway.pinata.cloud/ipfs/${certificationResult.imageCid.slice(7)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              >{certificationResult.imageCid}</Link></p>
           )}
 
           {certificationResult.tokenId && (
-            <p><strong>Token ID :</strong> {certificationResult.tokenId}</p>
+            <p><strong>Token ID : </strong> {certificationResult.tokenId}</p>
           )}
 
           <button 

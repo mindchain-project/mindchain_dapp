@@ -26,7 +26,7 @@ const metadata = {
 
 
 // Create the modal
-const modal = createAppKit({
+const modal = createAppKit({ // Eslint-disable-line no-unused-vars
   adapters: [wagmiAdapter],
   projectId,
   networks: [sepolia],
@@ -35,7 +35,6 @@ const modal = createAppKit({
   features: {
     connectMethodsOrder: ["wallet", "social"],
     analytics: true,
-    socials: ['google'],
     swaps: false,
     legalCheckbox: true,
     },

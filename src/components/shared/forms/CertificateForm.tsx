@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { FormProvider, useForm, useFieldArray } from 'react-hook-form';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { UpdateIcon } from "@radix-ui/react-icons";
 import { v4 as uuidv4 } from "uuid";
 import bs58 from "bs58";
@@ -12,7 +13,6 @@ import IterationFormController from '@/components/shared/forms/IterationFormCont
 import ParametersFormController from '@/components/shared/forms/ParametersFormController';
 import LegalFormController from '@/components/shared/forms/LegalFormController';
 import ValidationFormController from '@/components/shared/forms/ValidationFormController';
-
 import { 
   CertificationFormData, 
   FileMetadata, 
@@ -22,22 +22,21 @@ import {
   CertificateForTransaction 
 } from '@/utils/interfaces';
 import { uploadImageFile, uploadJsonFile, deleteFiles } from '@/services/storage';
-
-import { useWriteContract, useWaitForTransactionReceipt, useWatchContractEvent , type BaseError  } from 'wagmi';
-import { useAppKitAccount } from '@reown/appkit/react';
-
+import { useWriteContract } from 'wagmi';
 import { contractConfig, MindchainContractAddress } from "@/abi/MindchainContract";
 
 
 // Image Mindchain par défaut si l’utilisateur ne publie pas l’image finale sur IPFS
-const MINDCHAIN_NFT_CID = "bafybeidpcbs5gklqwqgb22hsmb5vlyv242lvttlpenmapb72fxjrnsawde";
+const MINDCHAIN_IMAGE_CID = "bafybeidpcbs5gklqwqgb22hsmb5vlyv242lvttlpenmapb72fxjrnsawde";
+// Préfixe standard pour les liens IPFS dans Metamask
+const CID_PREFIX = "ipfs://";
 
 // Fonction utilitaire pour générer les métadonnées d’un fichier
 const getFileMetadata = (file: File): FileMetadata => {
   const metadata = {
-    type: file.type,
-    name: file.name.toLowerCase().trim(),
-    size: file.size,
+    type: file.type || '',
+    name: file.name.toLowerCase().trim() || '',
+    size: file.size || 0,
   };
   return metadata;
 };
@@ -59,29 +58,29 @@ const shortUuid = (): string => {
   return bs58.encode(bytes);                      // ~22 chars
 };
 
-async function getTransactionData(form: CertificationFormData): Promise<{jsonCID: string, imageCID: string}> {
+async function getTransactionData(form: CertificationFormData): Promise<{tokenURI: string, imageCID: string}> {
 
   // Génération d’un ID unique pour le certificat
   const certificateId = shortUuid();
-  const attributes: any[] = [];
+  const attributes: any[] = []; // Eslint-disable-line @typescript-eslint/no-explicit-any
 
   // Gestion du fichier de l’image finale
   const originalFile: File = form.finalArtworkFileOriginal as File;
   const originalFileMetadata: FileMetadata = getFileMetadata(originalFile);
   let imageCID: string | null = null;
-  let jsonCID: string | null = null;
+  let tokenURI: string | null = null;
 
   // Refus publication IPFS (false) ou Image compressée invalide/manquante (null)
   if(form.finalArtworkFileIpfsPublish === false || !form.finalArtworkFile || !(form.finalArtworkFile instanceof File)) {
     // On utilise le CID par défaut
-    imageCID = "ipfs://" + MINDCHAIN_NFT_CID;
+    imageCID = MINDCHAIN_IMAGE_CID
   } else {
     // Generation du CID de l’image finale
     try {
       // Nommage de l'image sur IPFS
       const filename = `${certificateId}.${originalFileMetadata.name}`;
       // standard de lien IPFS
-      imageCID = "ipfs://" + await uploadImageFile(form.finalArtworkFile, filename);
+      imageCID = await uploadImageFile(form.finalArtworkFile, filename);
     } catch (err) {
       console.error("[Certificat] Erreur lors de l’upload de l’image finale sur IPFS :", err);
       throw err;
@@ -111,7 +110,7 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
         iterationImageData = {
           metadata: originalFileMetadata,
           cid: imageCID!,
-          description: null,
+          description: form.description ? form.description.toLowerCase().trim() : null,
         };
       } else {
         iterationImageData = {
@@ -149,7 +148,7 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
     const certificate : CertificateForTransaction = {
       name: form.title.toLowerCase().trim(),
       description: form.description.toLowerCase().trim(),
-      image: imageCID,
+      image: CID_PREFIX + imageCID,
       attributes: attributes,
       parameters: parameters,
       license: form.legal.license,
@@ -161,27 +160,28 @@ async function getTransactionData(form: CertificationFormData): Promise<{jsonCID
     };
 
     // Upload des métadonnées du certificat sur IPFS
-    const uploadJsonFilename = `Mindchain_certification_${certificateId}.json`;
-    jsonCID = await uploadJsonFile(certificate, uploadJsonFilename);
+    const uploadJsonFilename = `${certificateId}_mindchain.json`;
+    tokenURI = await uploadJsonFile(certificate, uploadJsonFilename);
   } catch (err) {
     console.error("[Certificat] Erreur lors de la préparation des données du certificat :", err);
     // En cas d’erreur lors de la préparation des données, on supprime les fichiers uploadés sur IPFS (si applicable)
-    if(imageCID && imageCID !== MINDCHAIN_NFT_CID) {
+    if(imageCID && imageCID !== MINDCHAIN_IMAGE_CID) {
       await deleteFiles([imageCID]);
     }
-    if(jsonCID) {
-      await deleteFiles([jsonCID]);
+    if(tokenURI) {
+      await deleteFiles([tokenURI]);
     }
     throw err;
   } 
-  if (jsonCID === null || imageCID === null) {
+  if (tokenURI === null || imageCID === null) {
     throw new Error("[Certificat] Erreur lors de lors de la préparation des métadonnées du certificat.");
   }
-  return {jsonCID, imageCID};
+  return {tokenURI, imageCID};
 }
 
+
 const CertificateForm = ({ onResult }: CertificateFormProps) => {
-  
+
   const methods = useForm<CertificationFormData>({
     mode: "onSubmit",
     defaultValues: {
@@ -222,24 +222,53 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
       },
     },
   });
-
+  
   const { control } = methods;
+  // Ref pour stocker les données de la transaction en cours
+  const [txData, setTxData] = useState<{
+    tokenURI: string
+    imageCID: string
+  } | null>(null)
 
-  const {
-    fields: iterationFields,
-    append: addIteration,
-    remove: removeIteration,
-  } = useFieldArray({
-    control,
-    name: "iterations",
-  });
-  const { address } = useAppKitAccount();
-  const { data: hash, isPending, error, writeContract  } = useWriteContract ();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash,
+  const [error, setError] = useState<string | null>(null)
+  const { writeContract, isPending } = useWriteContract({
+    mutation: {
+      onSuccess: (hash) => {
+        if (!txData) return
+
+        const result: MintResult = {
+          txHash: hash,
+          tokenId: null,
+          metadataCid: txData.tokenURI,
+          imageCid: txData.imageCID,
+        }
+
+        onResult?.(result)
+        setTxData(null)
+      },
+
+      onError: async (err) => {
+        console.error("[TX ERROR]", err)
+
+        if (txData) {
+          await deleteFiles([txData.imageCID, txData.tokenURI])
+        }
+
+        setTxData(null)
+        setError("La transaction a échoué")
+      },
+    },
   })
 
+  // Gestion des itérations du processus créatif
+  const {
+      fields: iterationFields,
+      append: addIteration,
+      remove: removeIteration,
+    } = useFieldArray({
+      control,
+      name: "iterations",
+    });
   useEffect(() => {
     if (iterationFields.length === 0) {
       addIteration({
@@ -256,58 +285,38 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
     }
   }, [iterationFields, addIteration]);
 
-  useWatchContractEvent({
-    ...contractConfig,
-    eventName: 'CertificationMinted',
-    onLogs(logs) {
-      console.log('CertificationMinted event logs:', logs);
-    }
-  });
 
   const onSubmit = async (data: CertificationFormData) => {
+    setError(null)
     // L'image de l'oeuvre finale est obligatoire
-    if (!data.finalArtworkFileOriginal || !(data.finalArtworkFileOriginal instanceof File)) {
+    if (!data.finalArtworkFileOriginal) {
       alert("Veuillez télécharger le fichier de l'œuvre finale.");
       return;
     }
     // Génération du certificat
-    let txData: {jsonCID: string, imageCID: string} = {jsonCID: "", imageCID: ""};
     try {
-      txData = await getTransactionData(data);
+      const prepared = await getTransactionData(data)
+      setTxData(prepared)
       // Interaction avec le contrat pour le mint du NFT
       writeContract({
         ...contractConfig,
-        functionName: 'mintCertification',
-        args: [address, txData.jsonCID!],
+        functionName: 'useCertificationService',
+        args: [prepared.tokenURI],
       })
-      if (!hash) {
-        // En cas d’erreur lors du mint, on supprime les fichiers uploadés sur IPFS (si applicable)
-        await deleteFiles([txData.imageCID!, txData.jsonCID!]);
-        throw new Error("[Certificat] Erreur lors du mint du certificat NFT.");  
-      }
-      console.log("CERTIFICATE GENERATED");
-      let mintCertificationResult: MintResult | null = null;
-      if(isConfirmed) { 
-        mintCertificationResult = {
-          txHash: hash,
-          tokenId: null,
-          metadataCid: txData.jsonCID,
-          imageCid: txData.imageCID
-        };
-      }
-      if (onResult) onResult(mintCertificationResult);
+      console.log("[CERTIFICATE SUBMIT]", txData)
     } catch (err) {
-      console.error("CERTIFICATE ERROR:", err);
-      await deleteFiles([txData.imageCID!, txData.jsonCID!]);
-      alert("Erreur lors de la génération du certificat.");
+        console.error("[CERTIFICATE ERROR]", err)
+        setError("Erreur lors de la préparation du certificat")
     }
   };
 
   return (
     <FormProvider {...methods}>
       <Form {...methods}>
-        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
-
+        <form 
+        onSubmit={methods.handleSubmit(onSubmit)} 
+        className="space-y-4"
+        >
           <h4 className="mt-10 mb-2 block text-lg font-bold text-white before:content-['1._'] before:mr-2">
           Information sur l&apos;œuvre finale
           </h4>
@@ -365,10 +374,10 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
             className="btn-action margin-right-20"
             disabled={isPending}
             >
-            {methods.formState.isSubmitting && (
+            {isPending && (
               <UpdateIcon className="animate-spin [animation-duration:3s] inline-block ml-2 mb-1 border-t-transparent rounded-full h-10 w-10 m-2" />
             )}
-            {methods.formState.isSubmitting ? "Certification en cours..." : "Certifier l'oeuvre"}
+            {isPending ? "Certification en cours..." : "Certifier l'oeuvre"}
           </button>
           <button
             type="button"
@@ -382,13 +391,9 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
           >Abandonner
           </button>
         </form>
-      {isConfirming && <div>Waiting for confirmation...</div>}
-      {isConfirmed && <div>Transaction confirmed.</div>} 
-      {error && (
-        <div className='text-red-600'>
-          Error: {(error as BaseError).shortMessage || error.message}
-        </div>
-      )}
+        {error && (
+          <div className="text-red-600">{error}</div>
+        )}
       </Form>
     </FormProvider>
   );

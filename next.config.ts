@@ -37,6 +37,11 @@ const nextConfig: NextConfig = {
         hostname: 'aqua-biological-trout-497.mypinata.cloud',
         pathname: '/ipfs/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'dweb.link',
+        pathname: '/ipfs/**',
+      },
     ],
   },
 };

@@ -5,12 +5,13 @@ import { FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { useGenerativeContext } from '@/components/shared/GenerativeContext';
 import Image from 'next/image';
 import { X } from "lucide-react";
-import { generateImage, generateImageDemo } from '@/services/generate';
+import { generateImageDemo, generateImage } from '@/services/generate';
 
 
 
 // Nouvelle itération en réutilisant l’image générée comme entrée
-const newIteration = async () => {
+const newIteration = async () => { // Eslint-disable-line no-unused-vars
+  console.log("Préparation d'une nouvelle itération de génération");
   // try {
   //   // Si une image a été générée, la récupérer et la charger en tant que fichier pour l'entrée suivante
   //   if (imageUrl) {
@@ -34,7 +35,7 @@ const newIteration = async () => {
 }
 
 
-const GenerativeForm = (props: { address: string, walletProvider: any }) => {
+const GenerativeForm = () => {
   // console.log("GenerativeForm props:", props.address);
   // Extraction des valeurs et fonctions du contexte
   const { signature, handleSignMsg, promptRequest, setPromptRequest, promptResult, setPromptResult } = useGenerativeContext();
@@ -64,10 +65,6 @@ const GenerativeForm = (props: { address: string, walletProvider: any }) => {
   const ipfsMsg = "J'autorise Mindchain à stocker ma création sur IPFS.";
   const sigMsg = "J'autorise Mindchain à utiliser ma clé privée pour crypter mes créations.";
 
-  const formatTitle = (title: string) => {
-    return title.toLowerCase().trim().replace(/\s+/g, '_');
-  };
-
   // Met à jour/revoque l'URL d'aperçu quand le fichier change
   useEffect(() => {
     // Révoque l'ancienne URL si présente
@@ -89,8 +86,8 @@ const GenerativeForm = (props: { address: string, walletProvider: any }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadedFile]);
 
-  // Fonction de génération de l'image
-  const generatePrompt = async (promptRequest: {title: string, prompt: string, model: string, uploadedFile: File | null}) => {
+  // // Fonction de génération de l'image
+  const generatePrompt = async (promptRequest: {title: string, prompt: string, model: string, uploadedFile: File | null}) => { // Eslint-disable-line no-unused-vars
     console.log("Generating image with promptRequest:", promptRequest);
     const result = await generateImage(
       promptRequest.model,
@@ -107,7 +104,7 @@ const GenerativeForm = (props: { address: string, walletProvider: any }) => {
   };
 
   // Prépare une nouvelle itération en réutilisant l’image générée comme entrée
-  const prepareNextIteration = async () => {
+  const prepareNextIteration = async () => { // Eslint-disable-line no-unused-vars
     try {
       if (promptResult?.cid && promptRequest?.title) {
         setUploadedFile(null);

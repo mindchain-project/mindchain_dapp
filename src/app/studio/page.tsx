@@ -7,36 +7,33 @@ import Certification from './certification';
 import Generation from './generation';
 import Member from "./member";
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
-import { readContract } from '@wagmi/core'
+import { readContract, type Config } from '@wagmi/core'
 import { useConfig } from 'wagmi'
 import { contractConfig } from "@/abi/MindchainContract";
 import whitelist  from "@/abi/whitelist.json";
 
 
 // Fonction pour définir la racine de Merkle sur le contrat
-const SetMerkleRoot = async (config: any, _merkleRoot: `0x${string}`) => {
-    await readContract(config , {
+const GetMerkleRoot = async (config: Config) => {
+    const root = await readContract(config , {
         ...contractConfig,
-        functionName: "setMerkleRoot",
-        args: [_merkleRoot],
+        functionName: "getMerkleRoot",
     });
+    console.log("Current Merkle Root on contract:", root);
+    return root;
 }
 
-const IsAddressOwner = async (config: any, address: `0x${string}`) : Promise<boolean> => {
-    const ownerAddress = await readContract(config , {
-        ...contractConfig,
-        functionName: "owner",
-    });
-    return (ownerAddress as string).toLowerCase() === address.toLowerCase();
-}
 
-const IsAddressMember = async (config: any, address: `0x${string}`, proof: string[]) : Promise<boolean> => {
+const IsAddressMember = async (config: Config, address: `0x${string}`, proof: string[]) : Promise<boolean> => {
   try {
+    console.log("Checking if address is member:", address, proof);
     const member = await readContract(config , {
         ...contractConfig,
         functionName: "isMember",
         args: [address, proof],
+        account: address,
     });
+    console.log("IsAddressMember result for", address, ":", member);
     return member as boolean;
   } catch (error) {
     console.error("Erreur lors de la vérification de l'adresse membre :", error);
@@ -45,7 +42,7 @@ const IsAddressMember = async (config: any, address: `0x${string}`, proof: strin
 }
 
 // Fonction pour obtenir la liste blanche d’adresses depuis les variables d’environnement
-function GetWhitelistedAddresses(): any[] {
+function GetWhitelistedAddresses(): string[][] {
   const whitelisted = whitelist ? whitelist.members : [];
   return whitelisted;
 }
@@ -54,8 +51,8 @@ const Studio = () => {
   const config = useConfig();
   const { isConnected, address } = useAppKitAccount();
   const [activeTab, setActiveTab] = useState<StudioTabKey>("certification");
-  const [merkleProof, setMerkleProof] = useState<string[]>([]);
-  const [merkleRootError, setMerkleRootError] = useState('');
+  const [, setMerkleProof] = useState<string[]>([]);
+  const [merkleRootError, ] = useState('');
 
   // Liste blanche d’adresses pour la génération de la preuve de Merkle
   const members = GetWhitelistedAddresses();
@@ -67,44 +64,51 @@ const Studio = () => {
   }, [merkleRootError])
 
   useEffect(() => {
-    if (!isConnected || !address) return;
-    if (!isMember && activeTab === "member") {
-        setActiveTab("certification");
-      }
+  if (!isConnected || !address) return;
+
+  const run = async () => {
     try {
       const tree = StandardMerkleTree.of(members, ["address"]);
-      const root = tree.root;
-      console.log("Merkle Root :", root);
+      //console.log("OFFCHAIN Merkle Root:", tree.root);
+      const onchainRoot = await GetMerkleRoot(config);
+      if (onchainRoot !== tree.root) {
+        //console.error("Merkle root mismatch");
+        setIsMember(false);
+        return;
+      }
+
       let proof: string[] = [];
 
-      // Trouver l'index de l'adresse connectée
       for (const [i, v] of tree.entries()) {
-        if (address && (v[0].toLowerCase() === address.toLowerCase() || v[0] === address)) {
+        if (v[0].toLowerCase() === address.toLowerCase()) {
           proof = tree.getProof(i);
           break;
         }
       }
+
       setMerkleProof(proof);
 
-      // Vérification côté smart contract
-      if (proof.length > 0) {
-        const checkMember = async () => {
-          const ok = await IsAddressMember(
-            config,
-            address as `0x${string}`,
-            proof
-          );
-          setIsMember(ok);
-        };
-        checkMember();
-      } else {
+      if (proof.length === 0) {
         setIsMember(false);
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      setMerkleRootError("Erreur lors de la génération de la preuve de Merkle.");
+
+      const ok = await IsAddressMember(
+        config,
+        address as `0x${string}`,
+        proof
+      );
+
+      setIsMember(ok);
+    } catch (e) {
+      console.error(e);
+      setIsMember(false);
     }
-  }, [isConnected, address, members, config, isMember, activeTab]);
+  };
+
+  run();
+}, [isConnected, address, members, config]);
+
 
   if (!isConnected) {
     return (

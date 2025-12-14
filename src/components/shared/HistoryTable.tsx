@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { NFTItem } from '@/utils/interfaces';
 import Image from "next/image";
-import { DownloadIcon, TrashIcon } from "@radix-ui/react-icons";
+import { DownloadIcon } from "@radix-ui/react-icons";
 import { useAppKitAccount } from "@reown/appkit/react";
-import { readContract } from '@wagmi/core'
+import { readContract, type Config } from '@wagmi/core'
 import { useConfig, useReadContract } from 'wagmi'
 import { contractConfig, MindchainContractAddress } from "@/abi/MindchainContract";
 import Link from "next/link";
@@ -16,19 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-async function loadFile(uri: string) {
-  if (!uri) return "";
-  // Format ipfs://CID
-  if (uri.startsWith("ipfs://")) {
-    return `https://gateway.pinata.cloud/ipfs/${uri.slice(7)}`;
-  }
-  // Format CID brut
-  if (/^[a-zA-Z0-9]{46,}$/.test(uri)) {
-    return `https://gateway.pinata.cloud/ipfs/${uri}`;
-  }
-  return uri; 
-}
+import { resolveURI } from "@/services/storage";
 
 async function FetchNFTs(
   tokenUris: string[],
@@ -36,11 +24,11 @@ async function FetchNFTs(
 ): Promise<NFTItem[]> {
     const items = await Promise.all(
         tokenUris.map(async (tokenUri, index) => {
-            const httpUrl = await loadFile(tokenUri);
+            const httpUrl = await resolveURI(tokenUri);
             const metadata = await fetch(httpUrl).then((r) => r.json());
             // On résout aussi l’URL d’image ici pour que <Image> ait directement une URL HTTP
             if (metadata.image) {
-                metadata.image = await loadFile(metadata.image);
+                metadata.image = await resolveURI(metadata.image);
             }
             return {
                 uri: httpUrl,
@@ -52,17 +40,16 @@ async function FetchNFTs(
   return items;
 }
 
-
-const GetTokenId = async (config: any, tokenCount: bigint | undefined): Promise<number> => {
+const GetTokenId = async (config: Config, ownerAddress: string, tokenCount: bigint | undefined): Promise<number> => {
     const tokenId  = await readContract(config , {
         ...contractConfig,
-        functionName: "tokenByIndex",
-        args: [tokenCount ? tokenCount.toString() : 0],
+        functionName: "tokenOfOwnerByIndex",
+        args: [ownerAddress, tokenCount ? tokenCount.toString() : 0],
     });
     return Number(tokenId);
 }
 
-const GetTokenUri = async (config: any, tokenId: number) => {
+const GetTokenUri = async (config: Config, tokenId: number) => {
     const tokenUri  = await readContract(config , {
         ...contractConfig,
         functionName: "tokenURI",
@@ -78,8 +65,8 @@ const HistoryTable = () => {
     const [nfts, setNfts] = useState<NFTItem[]>([]);
     const [loadingNfts, setLoadingNfts] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    const { data: tokenCount, isLoading: loadingTokenIds } = useReadContract({
+    // Récupération du nombre de tokens possédés par l’adresse
+    const { data: tokenCount } = useReadContract({
         ...contractConfig,
         functionName: "balanceOf",
         args: [address as `0x${string}`],
@@ -101,15 +88,10 @@ const HistoryTable = () => {
                 setLoadingNfts(true);
                 setError(null);
 
-                const total = Number(tokenCount);
-                if (total === 0) {
-                setNfts([]);
-                return;
-                }
                 // 1. Récupérer tous les tokenIds
                 const tokenIds: number[] = [];
-                for (let i = 0; i < total; i++) {
-                    const tokenId = await GetTokenId(wagmiConfig, BigInt(i));
+                for (let i = 0; i < Number(tokenCount); i++) {
+                    const tokenId = await GetTokenId(wagmiConfig, address, BigInt(i));
                     tokenIds.push(tokenId);
                 }
                 // 2. Récupérer toutes les tokenURIs
@@ -135,16 +117,16 @@ const HistoryTable = () => {
 
     return (
         <>
-        {loadingTokenIds && <p>Chargement…</p>}
+        {loadingNfts && <p>Chargement…</p>}
 
-        {!loadingTokenIds && nfts.length === 0 && (
+        {!loadingNfts && nfts.length === 0 && (
             <p>Aucun certificat trouvé pour cette adresse.</p>
         )}
         {error && <p className="text-red-500">{error}</p>}
         {nfts.length > 0 && (
         <Table>
         <TableHeader className="">
-            <TableRow>
+            <TableRow className="hover:bg-transparent">
             <TableHead className="w-[100px] text-white">Date</TableHead>
             <TableHead className="w-[100px] text-white">Token ID</TableHead>
             <TableHead className="text-white">N° Certificat</TableHead>
@@ -155,22 +137,37 @@ const HistoryTable = () => {
         </TableHeader>
         <TableBody>
             {nfts.map((nft) => (
-            <TableRow key={nft.tokenId}>
-                <TableCell className="font-medium">{nft.metadata.creation ? new Date(Number(nft.metadata.creation.timestamp)).toLocaleDateString("fr-FR") : ''}</TableCell>
-                <TableCell className="font-medium">{nft.tokenId ? nft.tokenId : '0'}</TableCell>
-                <TableCell> <Link href={nft.uri} >{nft.metadata.creation ? nft.metadata.creation.certificate_id : ''}</Link></TableCell>
-                <TableCell> <Link href={nft.uri}>{nft.metadata ? nft.metadata.name : ''}</Link></TableCell>
+            <TableRow key={nft.tokenId}
+            className="hover:bg-transparent">
+                <TableCell className="font-medium">
+                    {nft.metadata.creation ? new Date(Number(nft.metadata.creation.certification_timestamp)).toLocaleDateString("fr-FR") : ''}
+                </TableCell>
+                <TableCell className="font-medium">
+                    {nft.tokenId ? nft.tokenId : '0'}
+                </TableCell>
+                <TableCell ><Link 
+                    href={nft.uri} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-white hover:text-chart-2 transition-colors">
+                        {nft.metadata.creation ? nft.metadata.creation.certificate_id : ''} 
+                    </Link></TableCell>
+                <TableCell> 
+                    {nft.metadata ? nft.metadata.name : ''}
+                </TableCell>
                 <TableCell className="text-right">
                     {nft.metadata.image && (
-                    <Link href={nft.metadata.image}>
-                        <div>
-                        <Image
-                        src={nft.metadata.image}
-                        alt="NFT"
-                        className="w-16 h-16 object-cover rounded"
-                        width={64}
-                        height={64}
-                        /></div>
+                    <Link href={nft.metadata.image}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >
+                    <Image
+                    src={nft.metadata.image}
+                    alt="NFT"
+                    className="w-16 h-16 object-cover rounded"
+                    width={64}
+                    height={64}
+                    />
                     </Link>)}
                 </TableCell>
                 <TableCell>
@@ -182,8 +179,8 @@ const HistoryTable = () => {
             ))}
         </TableBody>
         <TableFooter className="bg-color-red">
-            <TableRow>
-            <TableCell colSpan={5} className="font-medium text-left">Nombre de certificats : {nfts.length}</TableCell>
+            <TableRow className="hover:bg-transparent">
+            <TableCell colSpan={6} className="font-medium text-left">Nombre de certificats : {nfts.length}</TableCell>
             </TableRow>
         </TableFooter>
         </Table>
