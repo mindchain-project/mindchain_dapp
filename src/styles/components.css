@@ -229,7 +229,6 @@ button.close-btn {
     right: 0.75rem;      /* right-3 */
     top: 50%;            /* top-1/2 */
     transform: translateY(-50%); /* -translate-y-1/2 */
-    
     padding: 0.25rem;    /* p-1 */
     background-color: #ef4444; /* bg-red-500 */
     color: white;        /* text-white */
@@ -239,7 +238,6 @@ button.close-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-
     transition: background-color 0.2s ease;
 }
 
@@ -247,31 +245,61 @@ button.close-btn {
     background-color: #dc2626; /* hover:bg-red-600 */
 }
 
-/* CGU styles */
-#cgu button {
-    padding: 10px;
-    margin: 10px;
+
+
+/* LEGALS PAGES */
+div.legals h1{
+    margin: 0 0 10px;
+    font-size: 2rem;
+    text-align: center;
+    background: linear-gradient(90deg, #00d4ff, #7e2cff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
-#cgu h4 {
-    margin-top: 20px;
-    font-size: 1.4rem;
-    font-weight: bold;
+div.legals section{
+    margin: 18px 0;
+    padding: 16px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
 }
-#cgu h5 {
-    margin-top: 10px;
-    font-size: 1.2rem;
-    font-weight: bold;
+div.legals h2{
+    margin: 0 0 10px;
+    font-size: 1.25rem;
+    text-align: left;
 }
-#cgu p, #cgu ul{
-    margin-top: 10px;
-    line-height: 1.6;
+div.legals h3{
+    margin: 14px 0 8px;
+    font-size: 1.05rem;
+    text-align: left;
 }
-#cgu ul li {
+div.legals p{ margin: 8px 0; }
+div.legals ul{ margin: 8px 0 8px 20px; }
+div.legals ul li {
     list-style-type: disc;
     margin-left: 20px;
     margin-top: 5px;
 }
-#cgu ul ol {
+div.legals ul ol {
     margin-top: 10px;
     line-height: 1.6;
+}
+div.legals li{ margin: 6px 0; }
+div.legals a{ color: var(--accent); }
+div.legals .notice{
+    margin: 14px 0 0;
+    padding: 12px 14px;
+    background: var(--card);
+    border:1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+div.legals .kbd{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: #f3f4f6;
+    border:1px solid var(--border);
+    border-radius: 8px;
+    padding: 1px 6px;
+    color:#111827;
 }

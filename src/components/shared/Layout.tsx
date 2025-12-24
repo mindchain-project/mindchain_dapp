@@ -1,5 +1,6 @@
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
+import { Toaster } from "sonner";
 import "@/styles/components.css";
 
 const Layout = ({children }: { children: React.ReactNode }) => {
@@ -9,6 +10,7 @@ const Layout = ({children }: { children: React.ReactNode }) => {
         className={`flex flex-col p-5 items-center min-h-screen`}>
       <Header />
         <main className="main-section">
+          <Toaster richColors />
           {children}
         </main>
       <Footer />

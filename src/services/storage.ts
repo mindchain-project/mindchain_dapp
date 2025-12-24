@@ -37,7 +37,6 @@ export async function uploadImageFile(file: File, filename: string) : Promise<st
   try {
     const result = await pinata.upload.public.file(file)
     .name(filename)
-    .group(MINDCHAIN_GROUP_ID);
     const pinedImage = result as unknown as { is_duplicate: boolean; cid: string };
     // if (pinedImage.is_duplicate) {
     //   // Impossible de certifier l'image si elle existe déjà sur IPFS
@@ -57,7 +56,6 @@ export async function uploadJsonFile(content: object, filename: string) : Promis
   try {
     const result = await pinata.upload.public.json(content)
     .name(filename)
-    .group(MINDCHAIN_GROUP_ID);
   const pinedJson = result as unknown as { is_duplicate: boolean; cid: string };
   if (pinedJson.is_duplicate) {
       // Impossible de poursuivre la certification

@@ -19,7 +19,7 @@ const GetMerkleRoot = async (config: Config) => {
         ...contractConfig,
         functionName: "getMerkleRoot",
     });
-    console.log("Current Merkle Root on contract:", root);
+    //console.log("Current Merkle Root on contract:", root);
     return root;
 }
 
@@ -33,10 +33,10 @@ const IsAddressMember = async (config: Config, address: `0x${string}`, proof: st
         args: [address, proof],
         account: address,
     });
-    console.log("IsAddressMember result for", address, ":", member);
+    //console.log("IsAddressMember result for", address, ":", member);
     return member as boolean;
   } catch (error) {
-    console.error("Erreur lors de la vérification de l'adresse membre :", error);
+    //console.error("Erreur lors de la vérification de l'adresse membre :", error);
     return false;
   }
 }
@@ -60,7 +60,7 @@ const Studio = () => {
 
   // Debug Merkle root error
   useEffect(() => {
-      console.log(merkleRootError);
+      //console.log(merkleRootError);
   }, [merkleRootError])
 
   useEffect(() => {

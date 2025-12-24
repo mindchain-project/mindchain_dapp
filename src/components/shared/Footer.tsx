@@ -6,12 +6,14 @@ import "@/styles/components.css";
 
 const Footer = () => {
   const isMobile = useIsMobile();
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className='p-5 items-center text-center bottom-0 w-full flex flex-col'>
       <div className={isMobile ? 'm-1 flex flex-col justify-center space-y-4 align-items-center' : 'm-1 flex justify-center space-x-4 align-items-center'}>
-        <Link href="/legals" rel="noopener noreferrer" className='mx-2 hover:underline font-light footer-link'>CGU</Link>
-        <Link href="/legals" rel="noopener noreferrer" className='mx-2 hover:underline font-light footer-link'>Politique de confidentialité</Link>
-        <Link href="/legals" rel="noopener noreferrer" className='mx-2 hover:underline font-light footer-link'>Mentions légales</Link>
+        <Link href="/legals?section=cgu" rel="noopener noreferrer" className='mx-2 hover:underline font-light footer-link'>CGU</Link>
+        <Link href="/legals?section=politique" rel="noopener noreferrer" className='mx-2 hover:underline font-light footer-link'>Politique de confidentialité</Link>
+        <Link href="/legals?section=mentions" rel="noopener noreferrer" className='mx-2 hover:underline font-light footer-link'>Mentions légales</Link>
         <Link href="mailto:project.mindchain+partner@gmail.com?subject=Partner%20info%20%3E%3E%3E" rel="noopener noreferrer" className='mx-2 hover:underline font-light footer-link'>Contact</Link>
         <div className={isMobile ? "flex space-x-4 justify-center" : "flex space-x-4 ml-6 justify-center"}>
           <Link href="https://x.com/Mindchain_" target="_blank" rel="noopener noreferrer">
@@ -28,7 +30,9 @@ const Footer = () => {
           </Link>
         </div>
       </div>
-      <small className='text-gray-500 font-light'>&copy; Mindchain {new Date().getFullYear()}</small>
+      <small className="text-gray-500 font-light">
+        &copy; Mindchain {currentYear}
+      </small>
     </footer>
   )
 }
