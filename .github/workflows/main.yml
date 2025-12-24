@@ -1,0 +1,29 @@
+name: Next.js DApp Tests
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+
+jobs:
+  MindchainDappTest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.15.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build Next.js app
+        run: npm run build
