@@ -6,6 +6,7 @@ import History from './history';
 import Certification from './certification';
 import Generation from './generation';
 import Member from "./member";
+import Pricing from "./pricing";
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { readContract, type Config } from '@wagmi/core'
 import { useConfig } from 'wagmi'
@@ -137,10 +138,7 @@ const Studio = () => {
           <History />
         )}
         {activeTab === "pricing" && (
-          <section className="space-y-4 justify-self-center">
-            <h3 className="text-xl font-semibold">Tarifs</h3>
-            <p className="text-muted-foreground">Choisissez votre offre adaptée à vos besoins.</p>
-          </section>
+          <Pricing />
         )}
         {activeTab === "faq" && (
           <section className="space-y-4 justify-self-center">
