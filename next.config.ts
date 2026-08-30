@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
         bodySizeLimit: '2mb',
       },
     },
+  // Les polices du certificat sont lues sur le disque à l'exécution : sans
+  // cette déclaration, le traceur de Next ne les embarquerait pas dans la
+  // fonction serverless et la génération du PDF échouerait en production.
+  outputFileTracingIncludes: {
+    '/api/certificate': ['./src/assets/fonts/**'],
+  },
   images: {
     remotePatterns: [
       {

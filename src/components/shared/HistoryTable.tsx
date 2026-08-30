@@ -179,31 +179,38 @@ const HistoryTable = () => {
                 <TableCell>
                     <button className="btn-action m-2 p-2" 
                         onClick={async () => {
-                        // 1. récupérer les données JSON IPFS
-                        const response = await fetch(nft.uri);
-                        const jsonData = await response.json();
+                        /*
+                         * Seul le tokenId est transmis (correctif SEC-03) : le
+                         * serveur reconstruit lui-même le contenu du certificat
+                         * depuis la chaîne, plutôt que de faire confiance à des
+                         * métadonnées envoyées par le navigateur.
+                         */
+                        try {
+                            const pdfResponse = await fetch("/api/certificate", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ tokenId: nft.tokenId }),
+                            });
 
-                        // 2. appeler l'API qui génère le PDF
-                        const pdfResponse = await fetch("/api/certificate/", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ ...jsonData, address }),
-                        });
+                            if (!pdfResponse.ok) {
+                                const { error: message } = await pdfResponse
+                                    .json()
+                                    .catch(() => ({ error: null }));
+                                setError(message ?? "La génération du certificat a échoué.");
+                                return;
+                            }
 
-                        if (!pdfResponse.ok) {
-                            throw new Error("PDF generation failed");
+                            const blob = await pdfResponse.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `certificate_${nft.tokenId}.pdf`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        } catch (err) {
+                            console.error("[History] Téléchargement du certificat :", err);
+                            setError("La génération du certificat a échoué.");
                         }
-
-                        // 3. télécharger le PDF
-                        const blob = await pdfResponse.blob();
-                        const url = URL.createObjectURL(blob);
-
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `certificate_${jsonData.creation.certificate_id}.pdf`;
-                        a.click();
-
-                        URL.revokeObjectURL(url);
                     }}>
                         <DownloadIcon className="h-5 w-5" />
                     </button>

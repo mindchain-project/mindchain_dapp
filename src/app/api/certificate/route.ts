@@ -1,192 +1,219 @@
-// NB : ce fichier portait une directive `'use server'`, sans effet utile ici —
-// un Route Handler est déjà un point d'entrée HTTP. La conserver entretenait la
-// confusion entre Route Handler et Server Action, au cœur de SEC-01.
-// Cette route reste publique et non validée : voir le constat SEC-03.
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import fetch from "node-fetch";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { NextResponse } from "next/server";
+import { PDFDocument, rgb, PDFFont } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import { z } from "zod";
+import { readCertificateToken, TokenNotFoundError } from "@/lib/chain";
+import {
+  extractFinalIteration,
+  fetchCertificateImage,
+  fetchCertificateMetadata,
+  MetadataError,
+} from "@/lib/certificate/metadata";
 
-/** Une itération du processus créatif, telle que stockée dans les métadonnées. */
-type CertificateIteration = {
-  prompt: string;
-  model: string;
-  provider: string;
-};
+export const runtime = "nodejs";
 
 /**
- * Un attribut des métadonnées. La valeur est un objet pour
- * `final_image_iteration` et les itérations, une primitive sinon.
+ * Génération du certificat PDF (correctif SEC-03).
+ *
+ * Le principe qui gouverne cette route : **le client ne fournit qu'un
+ * `tokenId`**. Tout le contenu du certificat est ensuite reconstruit par le
+ * serveur à partir de la chaîne — `tokenURI()` et `ownerOf()` — puis des
+ * métadonnées IPFS ainsi désignées.
+ *
+ * La version précédente rendait le PDF à partir du corps de la requête. Elle
+ * permettait donc à n'importe qui d'obtenir un document à l'apparence d'un
+ * certificat Mindchain attestant ce qu'il voulait, et de faire télécharger au
+ * serveur n'importe quel CID. Les deux problèmes disparaissent avec le
+ * changement de source de vérité : ce qui n'est pas on-chain n'est pas
+ * certifiable.
+ *
+ * La route reste **publique et sans authentification**, à dessein : un
+ * certificat n'a de valeur que s'il est vérifiable par un tiers.
  */
-type CertificateAttribute = {
-  trait_type: string;
-  value: CertificateIteration | string | number | boolean | null;
-};
 
-type CertificateData = {
-  name: string;
-  description: string;
-  image: string;
-  license: string;
-  contract_address: string;
-  /** Ajoutée par l'appelant, hors métadonnées IPFS (cf. HistoryTable). */
-  address?: string;
-  creation: {
-    certification_timestamp: number;
-    certificate_id: string;
-  };
-  attributes: CertificateAttribute[];
-};
+const requestSchema = z.object({
+  tokenId: z.coerce.bigint().nonnegative(),
+});
 
-export async function POST(req: Request) {
-  /*
-   * Assertion de type, pas validation : la forme du corps de requête n'est
-   * pas encore vérifiée. C'est l'objet du constat SEC-03, qui prévoit un
-   * schéma zod ici — `zod` est déjà dans les dépendances pour cela.
-   */
-  const data = (await req.json()) as CertificateData;
-  //console.log("[PDF] Generating certificate PDF...", data);
+/* -------------------------------------------------------------------------- */
+/*                                  Polices                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Liberation Sans est embarquée plutôt que d'utiliser les polices standard de
+ * pdf-lib : celles-ci sont encodées en WinAnsi et **lèvent une exception** dès
+ * qu'un caractère sort de ce jeu. Or les prompts d'IA contiennent couramment
+ * des emojis ou des caractères non latins : la génération échouait alors en
+ * erreur 500. Avec une police embarquée, un glyphe absent est simplement
+ * ignoré au rendu.
+ */
+const FONT_DIR = path.join(process.cwd(), "src", "assets", "fonts");
+let fontCache: { regular: Uint8Array; bold: Uint8Array } | null = null;
+
+async function loadFonts() {
+  if (!fontCache) {
+    const [regular, bold] = await Promise.all([
+      readFile(path.join(FONT_DIR, "LiberationSans-Regular.ttf")),
+      readFile(path.join(FONT_DIR, "LiberationSans-Bold.ttf")),
+    ]);
+    fontCache = { regular: new Uint8Array(regular), bold: new Uint8Array(bold) };
+  }
+  return fontCache;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  Utilitaires                               */
+/* -------------------------------------------------------------------------- */
+
+/** Retire les caractères de contrôle, qui ne se dessinent pas et brouillent la mise en page. */
+function clean(value: string): string {
+  return value.replace(/[\u0000-\u001F\u007F]/g, " ").trim();
+}
+
+/**
+ * Assainit le nom de fichier avant de l'insérer dans `Content-Disposition`.
+ * L'identifiant venant des métadonnées IPFS, une valeur contenant un guillemet
+ * ou un CRLF permettrait de manipuler l'en-tête de réponse.
+ */
+function safeFilename(value: string, fallback: string): string {
+  const cleaned = value.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    Route                                   */
+/* -------------------------------------------------------------------------- */
+
+export async function POST(request: Request) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Corps de requête invalide." }, { status: 400 });
+  }
+
+  const parsed = requestSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Un identifiant de token valide est requis." },
+      { status: 400 },
+    );
+  }
+  const { tokenId } = parsed.data;
+
+  // 1. Ce qui fait foi : la chaîne.
+  let token;
+  try {
+    token = await readCertificateToken(tokenId);
+  } catch (error) {
+    if (error instanceof TokenNotFoundError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+    console.error("[PDF] Lecture on-chain impossible :", error);
+    return NextResponse.json({ error: "Chaîne inaccessible." }, { status: 502 });
+  }
+
+  // 2. Les métadonnées désignées par la chaîne, validées avant usage.
+  let metadata;
+  try {
+    metadata = await fetchCertificateMetadata(token.tokenUri);
+  } catch (error) {
+    if (error instanceof MetadataError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
+    throw error;
+  }
+
+  const { regular, bold } = await loadFonts();
   const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
+  const font = await pdfDoc.embedFont(regular, { subset: true });
+  const boldFont = await pdfDoc.embedFont(bold, { subset: true });
+
   const page = pdfDoc.addPage([595, 842]); // A4
-
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  const { width, height } = page.getSize();
+  const { height } = page.getSize();
   let y = height - 60;
 
-  // === TITLE ===
-  page.drawText("CERTIFICAT DE CREATION PAR IA", {
-    x: 50,
-    y,
-    size: 24,
-    font: boldFont,
-    color: rgb(0, 0, 0),
-  });
+  const write = (
+    text: string,
+    { size = 12, bold: useBold = false, maxWidth = 495 } = {},
+  ) => {
+    const value = clean(text);
+    if (!value) return;
+    const usedFont: PDFFont = useBold ? boldFont : font;
+    page.drawText(value, { x: 50, y, size, font: usedFont, maxWidth, lineHeight: size + 3 });
+    // Hauteur consommée, en tenant compte du retour à la ligne automatique.
+    const lines = Math.max(1, Math.ceil(usedFont.widthOfTextAtSize(value, size) / maxWidth));
+    y -= lines * (size + 3) + 8;
+  };
 
-  y -= 40;
+  write("CERTIFICAT DE CREATION PAR IA", { size: 22, bold: true });
+  y -= 12;
 
-  // === BASIC INFO ===
-  const lines = [
-    `Contrat: ${data.contract_address}`,
-    `Nom de l'oeuvre: ${data.name}`,
-    `Description: ${data.description}`,
-    `Licence: ${data.license}`,
-    `ID du certificat: ${data.creation.certificate_id}`,
-    `Auteur: ${data.address ?? "non renseigne"}`,
-    `Certifié le: ${new Date(
-      data.creation.certification_timestamp
-    ).toLocaleDateString("fr-FR")}`,
-  ];
+  const finalIteration = extractFinalIteration(metadata);
+  const certifiedAt = metadata.creation.certification_timestamp
+    ? new Date(metadata.creation.certification_timestamp).toLocaleDateString("fr-FR")
+    : "date non renseignee";
 
-  lines.forEach((line) => {
-    page.drawText(line, {
-      x: 50,
-      y,
-      size: 12,
-      font,
-    });
-    y -= 20;
-  });
+  write(`Token ID : #${token.tokenId.toString()}`, { bold: true });
+  // L'auteur est le propriétaire on-chain, non plus une adresse fournie par
+  // l'appelant : c'est la seule source qui ne puisse pas être falsifiée.
+  write(`Auteur (proprietaire on-chain) : ${token.owner}`);
+  write(`Contrat : ${metadata.contract_address}`);
+  write(`Nom de l'oeuvre : ${metadata.name}`);
+  write(`Description : ${metadata.description}`);
+  write(`Licence : ${metadata.license}`);
+  write(`ID du certificat : ${metadata.creation.certificate_id}`);
+  write(`Certifie le : ${certifiedAt}`);
 
-  // === IMAGE FROM IPFS ===
-  if (data.image?.startsWith("ipfs://")) {
-    const cid = data.image.replace("ipfs://", "");
-    const imageUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+  // 3. L'image, bornée en taille et restreinte aux passerelles connues.
+  const image = await fetchCertificateImage(metadata.image);
+  if (image) {
+    try {
+      const embedded = image.contentType?.includes("png")
+        ? await pdfDoc.embedPng(image.bytes)
+        : image.contentType?.includes("jpeg") || image.contentType?.includes("jpg")
+          ? await pdfDoc.embedJpg(image.bytes)
+          : null;
 
-    const response = await fetch(imageUrl);
-    const contentType = response.headers.get("content-type");
-    const imageBytes = await response.arrayBuffer();
-
-    let image;
-
-    if (contentType?.includes("png")) {
-    image = await pdfDoc.embedPng(imageBytes);
-    } else if (
-    contentType?.includes("jpeg") ||
-    contentType?.includes("jpg")
-    ) {
-    image = await pdfDoc.embedJpg(imageBytes);
-    } else {
-    throw new Error(`Unsupported image type: ${contentType}`);
+      if (embedded) {
+        const size = 220;
+        page.drawImage(embedded, { x: 50, y: y - size, width: size, height: size });
+        y -= size + 20;
+      }
+    } catch (error) {
+      // Image illisible ou corrompue : le certificat reste valable sans elle.
+      console.error("[PDF] Image non intégrable :", error);
     }
-
-    page.drawImage(image, {
-      x: 50,
-      y: y - 220,
-      width: 220,
-      height: 220,
-    });
-
-    y -= 240;
   }
 
-  const finalIteration = data.attributes.find(
-    (attr) => attr.trait_type === "final_image_iteration"
-  );
-
-  const lastIteration =
-    finalIteration &&
-    typeof finalIteration.value === "object" &&
-    finalIteration.value !== null
-      ? finalIteration.value
-      : undefined;
-
-  // Texte du prompt SOUS l’image
-  if (lastIteration) {
-    // Prompt de l'oeuvre finale
-    page.drawText("Prompt de l'oeuvre finale :", {
-      x: 50,
-      y: y - 20,
-      size: 10,
-      font: boldFont,
-    });
-    page.drawText(lastIteration.prompt, {
-      x: 50,
-      y: y - 35,
-      size: 10,
-      font,
-      maxWidth: 220,
-      lineHeight: 14,
-    });
-    y -= 40;
-    // Model et provider
-    page.drawText("Modèle IA :", {
-      x: 50,
-      y: y - 20,
-      size: 10,
-      font: boldFont,
-    });
-    page.drawText(lastIteration.model+ " de " + lastIteration.provider, {
-      x: 50,
-      y: y - 35,
-      size: 10,
-      font,
-      maxWidth: 220,
-      lineHeight: 14,
-    });
-    y -= 240;
+  if (finalIteration) {
+    write("Prompt de l'oeuvre finale :", { size: 10, bold: true });
+    write(finalIteration.prompt, { size: 10 });
+    write("Modele IA :", { size: 10, bold: true });
+    write(`${finalIteration.model} de ${finalIteration.provider}`, { size: 10 });
   }
 
-  // === FOOTER ===
   page.drawText(
-    "Ce certificat atteste que l'oeuvre ci-dessus a été générée par un modèle d'IA et enregistrée sur la blockchain à des fins de provenance et de vérification.",
-    {
-      x: 50,
-      y: 80,
-      size: 10,
-      font,
-      color: rgb(0.4, 0.4, 0.4),
-      maxWidth: 400,     // largeur maximale du texte
-      lineHeight: 14,    // hauteur entre lignes
-    }
+    "Ce certificat atteste que l'oeuvre ci-dessus a ete enregistree sur la blockchain " +
+      "a des fins de provenance et de verification. Les informations qui y figurent sont " +
+      "reconstruites a partir du contrat, et non fournies par le demandeur.",
+    { x: 50, y: 70, size: 9, font, color: rgb(0.4, 0.4, 0.4), maxWidth: 495, lineHeight: 12 },
   );
 
-    const pdfBytes = await pdfDoc.save();
-    const arrayBuffer = new Uint8Array(pdfBytes).buffer;
-    return new Response(arrayBuffer, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition":
-          `attachment; filename="certificate_${data.creation.certificate_id}.pdf"`,
-      },
-    });
+  const pdfBytes = await pdfDoc.save();
+  const filename = `certificate_${safeFilename(
+    metadata.creation.certificate_id,
+    token.tokenId.toString(),
+  )}.pdf`;
+
+  return new Response(pdfBytes as unknown as BodyInit, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "private, max-age=0, no-store",
+    },
+  });
 }
