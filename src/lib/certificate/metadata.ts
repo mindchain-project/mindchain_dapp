@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { resolveURI } from "@/lib/ipfs";
+import { ALLOWED_IPFS_HOSTS, resolveURI } from "@/lib/ipfs";
 import { boundedFetch, FetchLimitError } from "@/lib/http/bounded-fetch";
 
 /**
@@ -11,12 +11,10 @@ import { boundedFetch, FetchLimitError } from "@/lib/http/bounded-fetch";
  * entrée non fiable, et sont donc validées comme telles avant tout usage.
  */
 
-/** Passerelles IPFS autorisées en lecture depuis le serveur. */
-export const ALLOWED_IPFS_HOSTS = [
-  "gateway.pinata.cloud",
-  "dweb.link",
-  "aqua-biological-trout-497.mypinata.cloud",
-] as const;
+// Les hôtes autorisés sont dérivés de `NEXT_PUBLIC_IPFS_GATEWAY` (cf. `@/lib/ipfs`)
+// plutôt que listés ici : une liste blanche écrite en dur finit toujours par
+// contenir un domaine qu'on ne contrôle plus.
+export { ALLOWED_IPFS_HOSTS };
 
 const MAX_METADATA_BYTES = 512 * 1024; // 512 Ko : un JSON de certificat est petit
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 Mo

@@ -2,6 +2,7 @@ import CertificateForm from '@/components/shared/forms/CertificateForm'
 import { useState } from 'react';
 import { MintResult } from '@/utils/interfaces';
 import Link from 'next/link';
+import { resolveURI } from '@/lib/ipfs';
 
 const Certification = () => {
 
@@ -36,7 +37,7 @@ const Certification = () => {
 
           {certificationResult.metadataCid && (
             <p><strong>Metadata CID : </strong> 
-            <Link href={`https://gateway.pinata.cloud/ipfs/${certificationResult.metadataCid}`}
+            <Link href={resolveURI(certificationResult.metadataCid)}
               target="_blank"
               rel="noopener noreferrer"
               >{certificationResult.metadataCid}</Link></p>
@@ -44,7 +45,7 @@ const Certification = () => {
 
           {certificationResult.imageCid && (
             <p><strong>Image CID : </strong>
-            <Link href={`https://gateway.pinata.cloud/ipfs/${certificationResult.imageCid}`}
+            <Link href={resolveURI(certificationResult.imageCid)}
               target="_blank"
               rel="noopener noreferrer"
               >{certificationResult.imageCid}</Link></p>
