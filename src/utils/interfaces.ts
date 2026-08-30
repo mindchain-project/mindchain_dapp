@@ -1,5 +1,7 @@
 import { Dispatch, SetStateAction } from 'react';
-import { UploadResponse } from "pinata";
+// `import type` : évite d'embarquer la SDK Pinata dans le bundle client,
+// ce fichier étant importé par des composants « use client ».
+import type { UploadResponse } from "pinata";
 
 
 /* ---------   INTERFACES GENERATION  ------------------*/
@@ -143,4 +145,28 @@ export interface MintResult {
 export interface PinataUploadResponse extends UploadResponse {
   cid: string,
   is_duplicate: boolean,
+}
+
+/** Causes d'échec d'un upload IPFS, remontées telles quelles au client. */
+export type UploadErrorCode =
+  | "unauthorized"     // session absente ou expirée
+  | "invalid_file"     // entrée vide ou malformée
+  | "too_large"        // au-delà de MAX_UPLOAD_BYTES
+  | "unsupported_type" // type MIME hors liste blanche
+  | "duplicate"        // contenu déjà épinglé sur IPFS
+  | "upload_failed";   // erreur côté Pinata
+
+/**
+ * Résultat d'un upload. Le `receipt` est un jeton signé prouvant que la
+ * session courante est à l'origine de ce CID ; il est exigé pour toute
+ * suppression ultérieure.
+ */
+export type UploadResult =
+  | { ok: true; cid: string; isDuplicate: boolean; receipt: string }
+  | { ok: false; error: UploadErrorCode };
+
+/** Couple (CID, preuve de propriété) attendu par `deleteFiles`. */
+export interface CidReceipt {
+  cid: string;
+  receipt: string;
 }
