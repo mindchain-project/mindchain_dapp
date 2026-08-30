@@ -7,108 +7,77 @@ import Certification from './certification';
 import Generation from './generation';
 import Member from "./member";
 import Pricing from "./pricing";
-import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { readContract, type Config } from '@wagmi/core'
 import { useConfig } from 'wagmi'
 import { contractConfig } from "@/abi/MindchainContract";
-import whitelist  from "@/abi/whitelist.json";
 
 
-// Fonction pour définir la racine de Merkle sur le contrat
-const GetMerkleRoot = async (config: Config) => {
-    const root = await readContract(config , {
-        ...contractConfig,
-        functionName: "getMerkleRoot",
-    });
-    //console.log("Current Merkle Root on contract:", root);
-    return root;
-}
-
-
-const IsAddressMember = async (config: Config, address: `0x${string}`, proof: string[]) : Promise<boolean> => {
+/**
+ * Appartenance a la liste blanche (correctif SEC-02).
+ *
+ * La liste ne quitte plus le serveur : `studio/page.tsx` importait auparavant
+ * `whitelist.json`, ce qui inlinait les adresses membres dans le bundle
+ * public. On demande desormais au serveur la preuve de la seule adresse
+ * connectee, puis on la fait valider par le contrat.
+ */
+const IsAddressMember = async (
+  config: Config,
+  address: `0x${string}`,
+): Promise<boolean> => {
   try {
-    //console.log("Checking if address is member:", address, proof);
-    const member = await readContract(config , {
-        ...contractConfig,
-        functionName: "isMember",
-        args: [address, proof],
-        account: address,
+    const response = await fetch("/api/membership", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address }),
     });
-    //console.log("IsAddressMember result for", address, ":", member);
+    if (!response.ok) return false;
+
+    const { isMember, proof } = await response.json();
+    if (!isMember || !Array.isArray(proof) || proof.length === 0) return false;
+
+    // La preuve est verifiee on-chain : le serveur n'est pas cru sur parole.
+    const member = await readContract(config, {
+      ...contractConfig,
+      functionName: "isMember",
+      args: [address, proof],
+      account: address,
+    });
     return member as boolean;
-  } catch (error) {
-    //console.error("Erreur lors de la vérification de l'adresse membre :", error);
+  } catch {
     return false;
   }
-}
-
-// Fonction pour obtenir la liste blanche d’adresses depuis les variables d’environnement
-function GetWhitelistedAddresses(): string[][] {
-  const whitelisted = whitelist ? whitelist.members : [];
-  return whitelisted;
-}
+};
 
 const Studio = () => {
   const config = useConfig();
   const { isConnected, address } = useAppKitAccount();
   const [activeTab, setActiveTab] = useState<StudioTabKey>("certification");
-  const [, setMerkleProof] = useState<string[]>([]);
-  const [merkleRootError, ] = useState('');
-
-  // Liste blanche d’adresses pour la génération de la preuve de Merkle
-  const members = GetWhitelistedAddresses();
-  const [isMember, setIsMember] = useState<boolean>(false);
-
-  // Debug Merkle root error
-  useEffect(() => {
-      //console.log(merkleRootError);
-  }, [merkleRootError])
+  /*
+   * On memorise l'adresse reconnue membre, et non un booleen : `isMember` est
+   * alors derive de l'adresse courante. Changer de portefeuille invalide donc
+   * le statut immediatement, sans fenetre pendant laquelle la nouvelle adresse
+   * heriterait du statut de la precedente.
+   */
+  const [memberAddress, setMemberAddress] = useState<string | null>(null);
+  const isMember =
+    !!address && memberAddress?.toLowerCase() === address.toLowerCase();
 
   useEffect(() => {
-  if (!isConnected || !address) return;
+    if (!isConnected || !address) return;
+    let cancelled = false;
 
-  const run = async () => {
-    try {
-      const tree = StandardMerkleTree.of(members, ["address"]);
-      //console.log("OFFCHAIN Merkle Root:", tree.root);
-      const onchainRoot = await GetMerkleRoot(config);
-      if (onchainRoot !== tree.root) {
-        //console.error("Merkle root mismatch");
-        setIsMember(false);
-        return;
-      }
+    IsAddressMember(config, address as `0x${string}`)
+      .then((ok) => {
+        if (!cancelled && ok) setMemberAddress(address);
+      })
+      .catch(() => {
+        /* non membre : l'etat derive reste faux */
+      });
 
-      let proof: string[] = [];
-
-      for (const [i, v] of tree.entries()) {
-        if (v[0].toLowerCase() === address.toLowerCase()) {
-          proof = tree.getProof(i);
-          break;
-        }
-      }
-
-      setMerkleProof(proof);
-
-      if (proof.length === 0) {
-        setIsMember(false);
-        return;
-      }
-
-      const ok = await IsAddressMember(
-        config,
-        address as `0x${string}`,
-        proof
-      );
-
-      setIsMember(ok);
-    } catch (e) {
-      console.error(e);
-      setIsMember(false);
-    }
-  };
-
-  run();
-}, [isConnected, address, members, config]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isConnected, address, config]);
 
 
   if (!isConnected) {
