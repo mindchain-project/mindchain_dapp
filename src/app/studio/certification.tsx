@@ -2,13 +2,11 @@ import CertificateForm from '@/components/shared/forms/CertificateForm'
 import { useState } from 'react';
 import { MintResult } from '@/utils/interfaces';
 import Link from 'next/link';
-import { resolveURI } from "@/services/storage";
 
 const Certification = () => {
 
   //console.log("Rendering Certification component with props:", props);
   const [certificationResult, setCertificationResult] = useState<MintResult | null>(null);
-  console.log("Certification component state - certificationResult:", certificationResult);
 
   return (
      <section className="space-y-4 justify-self-center">

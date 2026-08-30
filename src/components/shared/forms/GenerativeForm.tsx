@@ -5,7 +5,37 @@ import { FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { useGenerativeContext } from '@/components/shared/GenerativeContext';
 import Image from 'next/image';
 import { X } from "lucide-react";
-import { generateImageDemo, generateImage } from '@/services/generate';
+import type { GenerativeResultData } from '@/utils/interfaces';
+
+/**
+ * ⚠️ Formulaire de génération IA — actuellement HORS SERVICE.
+ *
+ * Ce composant n'est monté par aucun écran (constat FE-01 de l'audit).
+ * `@/services/generate` a été supprimé avec les SDK Gemini et HuggingFace :
+ * le service de génération est hors périmètre du POC, et ses exports
+ * `'use server'` constituaient une surface d'attaque latente (SEC-01).
+ *
+ * Les appels passent par les talons ci-dessous, qui échouent explicitement.
+ *
+ * Pour rebrancher la fonctionnalité, récupérer le module d'origine :
+ *   git show 6aa8094:src/services/generate.ts
+ * La génération devra alors être authentifiée (`requireSession()`) et adossée
+ * à une vérification du paiement on-chain — voir CORRECTIF-SEC-01.md.
+ */
+const GENERATION_DISABLED_MESSAGE =
+  "La génération IA est temporairement indisponible.";
+
+const generateImage = async (
+  _model: string,
+  _prompt: string,
+  _file: File | null,
+): Promise<GenerativeResultData> => {
+  throw new Error(GENERATION_DISABLED_MESSAGE);
+};
+
+const generateImageDemo = async (): Promise<GenerativeResultData> => {
+  throw new Error(GENERATION_DISABLED_MESSAGE);
+};
 
 
 

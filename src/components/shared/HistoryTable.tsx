@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { resolveURI } from "@/services/storage";
+import { resolveURI } from "@/lib/ipfs";
 
 async function FetchNFTs(
   tokenUris: string[],
@@ -24,11 +24,11 @@ async function FetchNFTs(
 ): Promise<NFTItem[]> {
     const items = await Promise.all(
         tokenUris.map(async (tokenUri, index) => {
-            const httpUrl = await resolveURI(tokenUri);
+            const httpUrl = resolveURI(tokenUri);
             const metadata = await fetch(httpUrl).then((r) => r.json());
             // On résout aussi l’URL d’image ici pour que <Image> ait directement une URL HTTP
             if (metadata.image) {
-                metadata.image = await resolveURI(metadata.image);
+                metadata.image = resolveURI(metadata.image);
             }
             return {
                 uri: httpUrl,
@@ -58,19 +58,12 @@ const GetTokenUri = async (config: Config, tokenId: number) => {
     return tokenUri as string;
 }
 
-async function downloadCertificate(data: any) {
-  const res = await fetch("/services/certificate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  window.open(url);
-}
-
-
+/*
+ * `downloadCertificate` a été retiré ici (constat FE-09 de l'audit) : la
+ * fonction n'était appelée nulle part et pointait vers `/services/certificate`,
+ * une route qui n'existe pas — la seule route de génération de PDF est
+ * `/api/certificate`, utilisée plus bas par le bouton de téléchargement.
+ */
 
 const HistoryTable = () => {
     const { address } = useAppKitAccount();

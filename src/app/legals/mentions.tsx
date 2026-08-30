@@ -204,7 +204,7 @@ const MentionsPage = () => {
         </p>
 
         <p>
-          Vous disposez du droit d'introduire une réclamation auprès de la CNIL (Commission Nationale de l&apos;Informatique et
+          Vous disposez du droit d&apos;introduire une réclamation auprès de la CNIL (Commission Nationale de l&apos;Informatique et
           des Libertés) :
           <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer">www.cnil.fr</a>
         </p>

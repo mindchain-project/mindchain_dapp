@@ -1,6 +1,25 @@
-'use server';
+// NB : ce fichier portait une directive `'use server'`, sans effet utile ici —
+// un Route Handler est déjà un point d'entrée HTTP. La conserver entretenait la
+// confusion entre Route Handler et Server Action, au cœur de SEC-01.
+// Cette route reste publique et non validée : voir le constat SEC-03.
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import fetch from "node-fetch";
+
+/** Une itération du processus créatif, telle que stockée dans les métadonnées. */
+type CertificateIteration = {
+  prompt: string;
+  model: string;
+  provider: string;
+};
+
+/**
+ * Un attribut des métadonnées. La valeur est un objet pour
+ * `final_image_iteration` et les itérations, une primitive sinon.
+ */
+type CertificateAttribute = {
+  trait_type: string;
+  value: CertificateIteration | string | number | boolean | null;
+};
 
 type CertificateData = {
   name: string;
@@ -8,25 +27,22 @@ type CertificateData = {
   image: string;
   license: string;
   contract_address: string;
+  /** Ajoutée par l'appelant, hors métadonnées IPFS (cf. HistoryTable). */
+  address?: string;
   creation: {
     certification_timestamp: number;
     certificate_id: string;
   };
-  attributes: any[];
+  attributes: CertificateAttribute[];
 };
 
-function stringifyValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return value.toString();
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "object" && value !== null)
-    return JSON.stringify(value);
-  return "";
-}
-
-
 export async function POST(req: Request) {
-  const data = await req.json();
+  /*
+   * Assertion de type, pas validation : la forme du corps de requête n'est
+   * pas encore vérifiée. C'est l'objet du constat SEC-03, qui prévoit un
+   * schéma zod ici — `zod` est déjà dans les dépendances pour cela.
+   */
+  const data = (await req.json()) as CertificateData;
   //console.log("[PDF] Generating certificate PDF...", data);
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595, 842]); // A4
@@ -55,7 +71,7 @@ export async function POST(req: Request) {
     `Description: ${data.description}`,
     `Licence: ${data.license}`,
     `ID du certificat: ${data.creation.certificate_id}`,
-    `Auteur: ${data.address}`, 
+    `Auteur: ${data.address ?? "non renseigne"}`,
     `Certifié le: ${new Date(
       data.creation.certification_timestamp
     ).toLocaleDateString("fr-FR")}`,
@@ -104,7 +120,7 @@ export async function POST(req: Request) {
   }
 
   const finalIteration = data.attributes.find(
-    (attr: any) => attr.trait_type === "final_image_iteration"
+    (attr) => attr.trait_type === "final_image_iteration"
   );
 
   const lastIteration =

@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FormProvider, useForm, useFieldArray } from 'react-hook-form';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { UpdateIcon } from "@radix-ui/react-icons";
-import { v4 as uuidv4 } from "uuid";
 import bs58 from "bs58";
 import { of as computeCID } from "ipfs-only-hash";
 // COMPONENTS
@@ -13,17 +12,39 @@ import IterationFormController from '@/components/shared/forms/IterationFormCont
 import ParametersFormController from '@/components/shared/forms/ParametersFormController';
 import LegalFormController from '@/components/shared/forms/LegalFormController';
 import ValidationFormController from '@/components/shared/forms/ValidationFormController';
-import { 
-  CertificationFormData, 
-  FileMetadata, 
-  CertificateFormProps, 
-  MintResult, 
-  iterationFileMetadata, 
-  CertificateForTransaction 
+import {
+  CertificationFormData,
+  FileMetadata,
+  CertificateFormProps,
+  MintResult,
+  iterationFileMetadata,
+  CertificateForTransaction,
+  CidReceipt,
+  UploadErrorCode
 } from '@/utils/interfaces';
 import { uploadImageFile, uploadJsonFile, deleteFiles } from '@/services/storage';
+import { useSiweSession } from '@/hooks/useSiweSession';
 import { useWriteContract } from 'wagmi';
 import { contractConfig, MindchainContractAddress } from "@/abi/MindchainContract";
+
+/** Traduction des causes d'échec d'upload renvoyées par le serveur. */
+const UPLOAD_ERRORS: Record<UploadErrorCode, string> = {
+  unauthorized:
+    "Session expirée. Reconnectez votre portefeuille pour publier sur IPFS.",
+  invalid_file: "Le fichier fourni est vide ou illisible.",
+  too_large: "Le fichier dépasse la taille maximale autorisée (10 Mo).",
+  unsupported_type: "Format d'image non pris en charge (PNG, JPEG, WebP ou GIF).",
+  duplicate: "Ce certificat existe déjà sur IPFS : il ne peut pas être publié deux fois.",
+  upload_failed: "La publication sur IPFS a échoué. Réessayez dans un instant.",
+};
+
+/** Données prêtes pour le mint, accompagnées des preuves de propriété des CID. */
+interface PreparedCertificate {
+  tokenURI: string;
+  imageCID: string;
+  /** Reçus des seuls CID que cette session a effectivement épinglés. */
+  receipts: CidReceipt[];
+}
 
 
 // Image Mindchain par défaut si l’utilisateur ne publie pas l’image finale sur IPFS
@@ -52,13 +73,15 @@ const getCID = async (file: File): Promise<string> => {
 };
 
 // Fonction utilitaire pour générer un UUID court en base58
+// `crypto.randomUUID()` remplace le paquet `uuid`, qui était importé sans
+// figurer dans les dépendances du projet (constat FE-02 de l'audit).
 const shortUuid = (): string => {
-  const uuid = uuidv4().replace(/-/g, "");        // 32 hex
+  const uuid = crypto.randomUUID().replace(/-/g, "");        // 32 hex
   const bytes = Uint8Array.from(uuid.match(/.{2}/g)!.map(b => parseInt(b, 16)));
   return bs58.encode(bytes);                      // ~22 chars
 };
 
-async function getTransactionData(form: CertificationFormData): Promise<{tokenURI: string, imageCID: string}> {
+async function getTransactionData(form: CertificationFormData): Promise<PreparedCertificate> {
 
   // Génération d’un ID unique pour le certificat
   const certificateId = shortUuid();
@@ -69,29 +92,28 @@ async function getTransactionData(form: CertificationFormData): Promise<{tokenUR
   const originalFileMetadata: FileMetadata = getFileMetadata(originalFile);
   let imageCID: string | null = null;
   let tokenURI: string | null = null;
+  // Reçus de propriété : seuls les CID épinglés par cette session y figurent,
+  // ce sont les seuls que le serveur nous autorisera à supprimer.
+  const receipts: CidReceipt[] = [];
 
   // Refus publication IPFS (false) ou Image compressée invalide/manquante (null)
   if(form.finalArtworkFileIpfsPublish === false || !form.finalArtworkFile || !(form.finalArtworkFile instanceof File)) {
     // On utilise le CID par défaut
     imageCID = MINDCHAIN_IMAGE_CID
   } else {
-    // Generation du CID de l’image finale
-    try {
-      // Nommage de l'image sur IPFS
-      const filename = `${certificateId}.${originalFileMetadata.name}`;
-      // standard de lien IPFS
-      imageCID = await uploadImageFile(form.finalArtworkFile, filename);
-    } catch (err) {
-      console.error("[Certificat] Erreur lors de l’upload de l’image finale sur IPFS :", err);
-      throw err;
+    // Nommage de l'image sur IPFS
+    const filename = `${certificateId}.${originalFileMetadata.name}`;
+    const upload = await uploadImageFile(form.finalArtworkFile, filename);
+    if (!upload.ok) {
+      // On interrompt plutôt que de poursuivre avec un CID calculé localement :
+      // un certificat qui référence une image que personne n'héberge n'a
+      // aucune valeur probante.
+      throw new Error(UPLOAD_ERRORS[upload.error]);
     }
+    imageCID = upload.cid;
+    receipts.push({ cid: upload.cid, receipt: upload.receipt });
   }
-  // Gestion du CID de l’image finale
-  if (!imageCID) {
-    alert("Erreur lors de l’upload de l’image finale sur IPFS. Votre image ne sera pas publiée.");
-    imageCID = await getCID(originalFile);
-  }
-  
+
   try {    
     // Construction des attributs du certificat
     for (let index = 0; index < form.iterations.length; index++) {
@@ -161,22 +183,24 @@ async function getTransactionData(form: CertificationFormData): Promise<{tokenUR
 
     // Upload des métadonnées du certificat sur IPFS
     const uploadJsonFilename = `${certificateId}_mindchain.json`;
-    tokenURI = await uploadJsonFile(certificate, uploadJsonFilename);
+    const metadataUpload = await uploadJsonFile(certificate, uploadJsonFilename);
+    if (!metadataUpload.ok) {
+      throw new Error(UPLOAD_ERRORS[metadataUpload.error]);
+    }
+    tokenURI = metadataUpload.cid;
+    receipts.push({ cid: metadataUpload.cid, receipt: metadataUpload.receipt });
   } catch (err) {
     console.error("[Certificat] Erreur lors de la préparation des données du certificat :", err);
-    // En cas d’erreur lors de la préparation des données, on supprime les fichiers uploadés sur IPFS (si applicable)
-    if(imageCID && imageCID !== MINDCHAIN_IMAGE_CID) {
-      await deleteFiles([imageCID]);
-    }
-    if(tokenURI) {
-      await deleteFiles([tokenURI]);
+    // Nettoyage : on ne dépublie que ce que cette session a elle-même épinglé.
+    if (receipts.length > 0) {
+      await deleteFiles(receipts);
     }
     throw err;
-  } 
-  if (tokenURI === null || imageCID === null) {
-    throw new Error("[Certificat] Erreur lors de lors de la préparation des métadonnées du certificat.");
   }
-  return {tokenURI, imageCID};
+  if (tokenURI === null || imageCID === null) {
+    throw new Error("[Certificat] Erreur lors de la préparation des métadonnées du certificat.");
+  }
+  return { tokenURI, imageCID, receipts };
 }
 
 
@@ -224,38 +248,45 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
   });
   
   const { control } = methods;
-  // Ref pour stocker les données de la transaction en cours
-  const [txData, setTxData] = useState<{
-    tokenURI: string
-    imageCID: string
-  } | null>(null)
+
+  /**
+   * Référence plutôt qu'état React : les callbacks de wagmi s'exécutent avec
+   * la closure du rendu en cours, or `setTxData` n'était pas encore appliqué
+   * quand `writeContract` démarrait — le nettoyage IPFS pouvait donc être
+   * ignoré (constat FE-06 de l'audit).
+   */
+  const preparedRef = useRef<PreparedCertificate | null>(null)
 
   const [error, setError] = useState<string | null>(null)
+  const { ensureSession, isConnected } = useSiweSession()
+
   const { writeContract, isPending } = useWriteContract({
     mutation: {
       onSuccess: (hash) => {
-        if (!txData) return
+        const prepared = preparedRef.current
+        if (!prepared) return
 
         const result: MintResult = {
           txHash: hash,
           tokenId: null,
-          metadataCid: txData.tokenURI,
-          imageCid: txData.imageCID,
+          metadataCid: prepared.tokenURI,
+          imageCid: prepared.imageCID,
         }
 
         onResult?.(result)
-        setTxData(null)
+        preparedRef.current = null
       },
 
       onError: async (err) => {
         console.error("[TX ERROR]", err)
 
-        if (txData) {
-          await deleteFiles([txData.imageCID, txData.tokenURI])
+        const prepared = preparedRef.current
+        if (prepared && prepared.receipts.length > 0) {
+          await deleteFiles(prepared.receipts)
         }
 
-        setTxData(null)
-        setError("La transaction a échoué")
+        preparedRef.current = null
+        setError("La transaction a échoué. Les fichiers publiés ont été retirés d'IPFS.")
       },
     },
   })
@@ -290,31 +321,55 @@ const CertificateForm = ({ onResult }: CertificateFormProps) => {
     setError(null)
     // L'image de l'oeuvre finale est obligatoire
     if (!data.finalArtworkFileOriginal) {
-      alert("Veuillez télécharger le fichier de l'œuvre finale.");
+      setError("Veuillez téléverser le fichier de l'œuvre finale.")
       return;
     }
+    if (!isConnected) {
+      setError("Connectez votre portefeuille avant de certifier une œuvre.")
+      return;
+    }
+
+    /*
+     * Ouverture de la session applicative avant tout appel serveur.
+     * La publication IPFS consomme un compte payant : elle est réservée aux
+     * utilisateurs ayant prouvé la possession de leur adresse par signature
+     * (correctif SEC-01). La session dure une heure, l'utilisateur ne signe
+     * donc pas à chaque certificat.
+     */
+    const authenticated = await ensureSession()
+    if (!authenticated) {
+      setError("La signature de connexion est nécessaire pour publier sur IPFS.")
+      return;
+    }
+
     // Génération du certificat
     try {
       const prepared = await getTransactionData(data)
-      setTxData(prepared)
+      preparedRef.current = prepared
       // Interaction avec le contrat pour le mint du NFT
       writeContract({
         ...contractConfig,
         functionName: 'useCertificationService',
         args: [prepared.tokenURI],
       })
-      console.log("[CERTIFICATE SUBMIT]", txData)
     } catch (err) {
         console.error("[CERTIFICATE ERROR]", err)
-        setError("Erreur lors de la préparation du certificat")
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Erreur lors de la préparation du certificat"
+        )
     }
   };
 
   return (
     <FormProvider {...methods}>
       <Form {...methods}>
-        <form 
-        onSubmit={methods.handleSubmit(onSubmit)} 
+        <form
+        /* `handleSubmit` est composé au moment de la soumission et non pendant
+           le rendu : `onSubmit` lit `preparedRef`, et le compilateur React
+           interdit qu'une fonction accédant à une ref soit évaluée au rendu. */
+        onSubmit={(event) => { void methods.handleSubmit(onSubmit)(event); }}
         className="space-y-4"
         >
           <h4 className="mt-10 mb-2 block text-lg font-bold text-white before:content-['1._'] before:mr-2">
