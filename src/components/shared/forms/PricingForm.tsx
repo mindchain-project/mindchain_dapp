@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useConfig, useReadContract, useWriteContract, useBalance, useChainId } from 'wagmi'
 import { contractConfig, MindchainContractAddress } from "@/abi/MindchainContract";
+import { useCreditValue } from "@/hooks/useCreditValue";
 import { Form, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { FormProvider, useForm, Controller, set } from 'react-hook-form';
 import { toast } from "sonner";
@@ -67,18 +68,8 @@ const UserCreditForm = () => {
         },
     });
 
-    // Fonction pour récupérer la valeur requise pour 1 crédit
-    const {
-        data: creditValue
-        } = useReadContract({
-        ...contractConfig,
-        functionName: "getCreditValue",
-        args: [],
-        query: {
-            enabled: !!MindchainContractAddress,
-            select: (data) => data as bigint,
-        },
-    });
+    // Prix d'un crédit, reconstitué depuis les fonctions publiques (cf. SC-02).
+    const { creditValue } = useCreditValue();
 
     // Fonction pour écrire dans le contrat
     const { writeContract, isPending } = useWriteContract({
@@ -150,12 +141,20 @@ const UserCreditForm = () => {
     const buyCredits = async ( data: BuyCreditFormData) => {
         //console.log("Form submitted with data:", data);
         if (!MindchainContractAddress) return;
+        /*
+         * Ces deux sorties etaient silencieuses : l'utilisateur cliquait
+         * « Acheter » et il ne se passait rien, sans le moindre message.
+         */
         if (!creditValue || creditValue <= BigInt(0)) {
-            console.error("Credit value is undefined");
+            toast.error("Prix indisponible", {
+                description: "Impossible de lire le prix d'un credit sur le contrat.",
+            });
             return;
         }
         if (!creditsToBuy || creditsToBuy <= 0) {
-            console.error("Invalid number of credits to buy");
+            toast.error("Quantite invalide", {
+                description: "Indiquez un nombre de credits superieur a zero.",
+            });
             return;
         }
         const totalPriceWei =

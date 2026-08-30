@@ -43,4 +43,6 @@ next-env.d.ts
 
 # local data
 public/img
-whitelist.json
+# Liste blanche : donnee de deploiement, jamais versionnee (SEC-02)
+src/data/whitelist.json
+!src/data/whitelist.example.json

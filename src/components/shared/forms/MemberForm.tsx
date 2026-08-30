@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useConfig, useReadContract, useWriteContract, useBalance, useChainId } from 'wagmi'
 import { contractConfig, MindchainContractAddress } from "@/abi/MindchainContract";
+import { useCreditValue } from "@/hooks/useCreditValue";
 import { Form, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { FormProvider, useForm, Controller } from 'react-hook-form';
 import { toast } from "sonner";
 import { waitForTransactionReceipt } from "@wagmi/core";
-import { formatEther, parseEther } from "viem";
+import { formatEther } from "viem";
 
 interface CreditFormData {
     creditsToAdd: number;
@@ -107,18 +108,14 @@ const MemberForm = () => {
         },
     });
 
-    // Récupération du solde du contrat
-    const {
-        data: contractBalance,
-        refetch: refetchContractBalance,
-        } = useReadContract({
-        ...contractConfig,
-        functionName: "getContractBalance",
-        args: [],
-        query: {
-            enabled: !!MindchainContractAddress,
-            select: (data) => data as bigint,
-        },
+    /*
+     * `getContractBalance()` est `view` mais protegee par `onlyRole` : elle
+     * revertait pour tout non-admin, et le solde s'affichait a 0 ETH.
+     * Le solde d'une adresse se lit de toute facon par RPC, sans le contrat.
+     */
+    const { data: contractBalance, refetch: refetchContractBalance } = useBalance({
+        address: MindchainContractAddress,
+        query: { enabled: !!MindchainContractAddress },
     });
     
     // Récupération de la total supply
@@ -159,18 +156,8 @@ const MemberForm = () => {
         },
     });
 
-    // Fonction pour récupérer la valeur requise pour 1 crédit
-    const {
-        data: creditValue
-        } = useReadContract({
-        ...contractConfig,
-        functionName: "getCreditValue",
-        args: [],
-        query: {
-            enabled: !!MindchainContractAddress,
-            select: (data) => data as bigint,
-        },
-    });
+    // Prix d'un crédit, reconstitué depuis les fonctions publiques (cf. SC-02).
+    const { creditValue } = useCreditValue();
 
     // Fonction pour écrire dans le contrat
     const { writeContract, isPending } = useWriteContract({
@@ -227,12 +214,20 @@ const MemberForm = () => {
     const buyCredits = async ( data: BuyCreditFormData) => {
         //console.log("Form submitted with data:", data);
         if (!MindchainContractAddress) return;
+        /*
+         * Ces deux sorties etaient silencieuses : l'utilisateur cliquait
+         * « Acheter » et il ne se passait rien, sans le moindre message.
+         */
         if (!creditValue || creditValue <= BigInt(0)) {
-            console.error("Credit value is undefined");
+            toast.error("Prix indisponible", {
+                description: "Impossible de lire le prix d'un credit sur le contrat.",
+            });
             return;
         }
         if (!creditsToBuy || creditsToBuy <= 0) {
-            console.error("Invalid number of credits to buy");
+            toast.error("Quantite invalide", {
+                description: "Indiquez un nombre de credits superieur a zero.",
+            });
             return;
         }
         const totalPriceWei =
@@ -282,8 +277,8 @@ const MemberForm = () => {
             <p className="mt-2 text-base"><strong>Adresse du contrat :</strong> {MindchainContractAddress}</p>
             <p className="mt-2 text-base">
                 <strong>Balance actuelle du contrat : </strong> 
-                {(contractBalance !== undefined && contractBalance !== null)
-                ? formatEther(contractBalance) + " ETH"
+                {contractBalance
+                ? formatEther(contractBalance.value) + " ETH"
                 : "0 ETH"}
             </p>
             <p className="mt-2 text-base"><strong>Nombre total de tokens :</strong> {totalSupply?.toString()}</p>
@@ -307,11 +302,15 @@ const MemberForm = () => {
                 <li className="mt-1 text-base">- certification : {creditBalance[0].toString()}</li>
                 <li className="mt-1 text-base">- generation : {creditBalance[1].toString()}</li>
                 </ul>
-            <p className="mt-2 text-base"><strong>Solde remboursable : </strong>{creditBalance[2].toString()} ETH</p>
+            <p className="mt-2 text-base"><strong>Solde remboursable : </strong>{formatEther(creditBalance[2])} ETH</p>
             </>
             )}
         </div>
 
+        {/* Reserve aux administrateurs : `updateCreditBalance` est protegee par
+            onlyRole(ROLE_ADMIN). L'afficher a tous faisait signer aux membres
+            une transaction vouee a echouer, gaz perdu compris (FE-03). */}
+        {isAdmin === true && (<>
         <FormProvider {...methodsAdd}>
             <Form {...methodsAdd}>
                 <form 
@@ -387,6 +386,7 @@ const MemberForm = () => {
                 </form>
             </Form>
         </FormProvider>
+        </>)}
 
         <FormProvider {...methodsBuy}>
             <Form {...methodsBuy}>
@@ -482,7 +482,7 @@ const MemberForm = () => {
             <ul className="mt-4">
                 <li>Certification : {userCreditBalance[0].toString()}</li>
                 <li>Génération : {userCreditBalance[1].toString()}</li>
-                <li>Remboursable : {parseEther(userCreditBalance[2].toString())} ETH</li>
+                <li>Remboursable : {formatEther(userCreditBalance[2])} ETH</li>
             </ul>
             )}
         </div>    
